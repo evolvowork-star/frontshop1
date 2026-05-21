@@ -1,0 +1,106 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum subscriptionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String?
+  email        String   @unique
+  passwordHash String?
+  image        String?
+  role         Role     @default(USER)
+  subscription       subscription[]
+  aiUsageLogs  AIUsageLog[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Package {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  tagline      String   @default("pack")   // ← added
+  description  String
+  priceEur     Float
+  features     String[]
+  deliveryDays Int      @default(7)         // ← added
+  theme        String   @default("light")   // ← added
+  isPopular    Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  subscription       subscription[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model subscription {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id])
+  packageId       String
+  package         Package     @relation(fields: [packageId], references: [id])
+  packageSnapshot Json                        // ← added: full snapshot at purchase time
+  status          subscriptionStatus @default(COMPLETED)
+  currency        String      @default("EUR")
+  amount          Float                       // amount in selected currency
+  amountEur       Float                       // ← added: always in EUR for reference
+  invoiceNo       String      @unique
+  notes           String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model AdminLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  entityType String
+  entityId   String
+  details    Json     @default("{}")
+  createdAt  DateTime @default(now())
+}
+
+model AIConfig {
+  id           String   @id @default(cuid())
+  provider     String   @default("openai")
+  model        String
+  apiKeyEnc    String   // AES-256 encrypted API key
+  apiKeyMasked String   // sk-proj-...xxxx (display ke liye)
+  orgId        String?
+  isActive     Boolean  @default(true)
+  connectedBy  String   // admin email jo ne connect kiya
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model AIUsageLog {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  packageId   String?
+  packageSlug String
+  packageName String
+  tokensIn    Int      @default(0)
+  tokensOut   Int      @default(0)
+  costUsd     Float    @default(0)
+  createdAt   DateTime @default(now())
+}
