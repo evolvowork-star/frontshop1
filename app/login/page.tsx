@@ -27,7 +27,7 @@ function LoginContent() {
     if (res?.error) {
       setError("Invalid email or password.")
     } else {
-      router.push(callbackUrl)
+      window.location.href = callbackUrl
     }
   }
 

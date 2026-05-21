@@ -360,7 +360,7 @@ export default function AdminPanel() {
   disconnectAI: () => void
 }) {
   const SUPPORTED_MODELS = [
-    { value: "gpt-4.5-preview",    label: "GPT-4.5 Preview  (latest)" },
+    { value: "gpt-5.5",    label: "GPT-5.5" },
     { value: "gpt-4o",             label: "GPT-4o" },
     { value: "gpt-4-turbo",        label: "GPT-4 Turbo" },
     { value: "dall-e-3",           label: "DALL·E 3  (image generation)" },

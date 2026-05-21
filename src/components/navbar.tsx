@@ -14,6 +14,8 @@ export default function Navbar({ currency, onCurrencyChange }: NavbarProps) {
   const { data: session } = useSession()
   const [menuOpen, setMenuOpen] = useState(false)
 
+  const isAdmin = session?.user && (session.user as any).role !== "USER"
+
   return (
     <header className="sticky top-0 z-50 bg-[#F5F0E8] border-b-2 border-black">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -33,7 +35,7 @@ export default function Navbar({ currency, onCurrencyChange }: NavbarProps) {
           <Link href="/#delivery" className="text-sm font-bold uppercase tracking-widest hover:text-[#FFD000] transition-colors">
             Delivery
           </Link>
-          {session?.user && (session.user as any).role !== "USER" && (
+          {isAdmin && (
             <Link href="/admin" className="text-sm font-bold uppercase tracking-widest hover:text-[#FFD000] transition-colors">
               Admin
             </Link>
@@ -55,13 +57,15 @@ export default function Navbar({ currency, onCurrencyChange }: NavbarProps) {
               </button>
               {menuOpen && (
                 <div className="absolute right-0 mt-1 w-44 bg-white border-2 border-black z-50">
-                  <Link
-                    href="/admin"
-                    className="block px-4 py-3 text-sm font-bold uppercase tracking-widest hover:bg-[#FFD000] transition-colors border-b border-black"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Dashboard
-                  </Link>
+                  {isAdmin && (
+                    <Link
+                      href="/admin"
+                      className="block px-4 py-3 text-sm font-bold uppercase tracking-widest hover:bg-[#FFD000] transition-colors border-b border-black"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      Admin
+                    </Link>
+                  )}
                   <button
                     onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/" }) }}
                     className="w-full text-left px-4 py-3 text-sm font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors"
