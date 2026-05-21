@@ -1,13 +1,13 @@
 "use client"
 // app/checkout/page.tsx
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { getPackageBySlug } from "@/src/lib/package"
 import { CURRENCIES, convertPrice, type Currency } from "@/src/lib/currency"
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const { data: session } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -255,5 +255,13 @@ export default function CheckoutPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#F5F0E8]" />}>
+      <CheckoutContent />
+    </Suspense>
   )
 }
