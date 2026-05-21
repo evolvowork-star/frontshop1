@@ -8,7 +8,7 @@ type ValidStatus = typeof VALID_STATUSES[number]
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { error, session } = await requireAdmin()
   if (error) return error
@@ -24,7 +24,7 @@ export async function PATCH(
 
   // Fetch existing to log the old status
   const existing = await prisma.subscription.findUnique({
-    where: { id: params.id },
+    where: { id: (await params).id },
     select: { status: true, userId: true },
   })
 
@@ -34,7 +34,7 @@ export async function PATCH(
 
   const [updated] = await prisma.$transaction([
     prisma.subscription.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: { status: status as ValidStatus },
       include: {
         user: { select: { id: true, name: true, email: true, image: true, role: true } },
@@ -46,7 +46,7 @@ export async function PATCH(
         adminId:    (session.user as any).id,
         action:     "UPDATE_STATUS",
         entityType: "subscription",
-        entityId:   params.id,
+        entityId:   (await params).id,
         details: {
           from: existing.status,
           to:   status,
@@ -60,13 +60,13 @@ export async function PATCH(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
    const { error, session } = await requireAdmin()
   if (error) return error
-
+    const { id } = await params
   const subscription = await prisma.subscription.findUnique({
-    where: { id: params.id },
+    where: { id: id },
     include: {
       user: { select: { id: true, name: true, email: true, image: true, role: true } },
       package: { select: { id: true, name: true, slug: true, theme: true } },
