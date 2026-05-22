@@ -29,11 +29,15 @@ export type AggregatePackage = {
 export type PackageAvgAggregateOutputType = {
   priceEur: number | null
   deliveryDays: number | null
+  logoCount: number | null
+  bannerCount: number | null
 }
 
 export type PackageSumAggregateOutputType = {
   priceEur: number | null
   deliveryDays: number | null
+  logoCount: number | null
+  bannerCount: number | null
 }
 
 export type PackageMinAggregateOutputType = {
@@ -47,6 +51,8 @@ export type PackageMinAggregateOutputType = {
   theme: string | null
   isPopular: boolean | null
   isActive: boolean | null
+  logoCount: number | null
+  bannerCount: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -62,6 +68,8 @@ export type PackageMaxAggregateOutputType = {
   theme: string | null
   isPopular: boolean | null
   isActive: boolean | null
+  logoCount: number | null
+  bannerCount: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -78,6 +86,8 @@ export type PackageCountAggregateOutputType = {
   theme: number
   isPopular: number
   isActive: number
+  logoCount: number
+  bannerCount: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -87,11 +97,15 @@ export type PackageCountAggregateOutputType = {
 export type PackageAvgAggregateInputType = {
   priceEur?: true
   deliveryDays?: true
+  logoCount?: true
+  bannerCount?: true
 }
 
 export type PackageSumAggregateInputType = {
   priceEur?: true
   deliveryDays?: true
+  logoCount?: true
+  bannerCount?: true
 }
 
 export type PackageMinAggregateInputType = {
@@ -105,6 +119,8 @@ export type PackageMinAggregateInputType = {
   theme?: true
   isPopular?: true
   isActive?: true
+  logoCount?: true
+  bannerCount?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -120,6 +136,8 @@ export type PackageMaxAggregateInputType = {
   theme?: true
   isPopular?: true
   isActive?: true
+  logoCount?: true
+  bannerCount?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -136,6 +154,8 @@ export type PackageCountAggregateInputType = {
   theme?: true
   isPopular?: true
   isActive?: true
+  logoCount?: true
+  bannerCount?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -239,6 +259,8 @@ export type PackageGroupByOutputType = {
   theme: string
   isPopular: boolean
   isActive: boolean
+  logoCount: number
+  bannerCount: number
   createdAt: Date
   updatedAt: Date
   _count: PackageCountAggregateOutputType | null
@@ -278,6 +300,8 @@ export type PackageWhereInput = {
   theme?: Prisma.StringFilter<"Package"> | string
   isPopular?: Prisma.BoolFilter<"Package"> | boolean
   isActive?: Prisma.BoolFilter<"Package"> | boolean
+  logoCount?: Prisma.IntFilter<"Package"> | number
+  bannerCount?: Prisma.IntFilter<"Package"> | number
   createdAt?: Prisma.DateTimeFilter<"Package"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Package"> | Date | string
   subscription?: Prisma.SubscriptionListRelationFilter
@@ -295,6 +319,8 @@ export type PackageOrderByWithRelationInput = {
   theme?: Prisma.SortOrder
   isPopular?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  logoCount?: Prisma.SortOrder
+  bannerCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   subscription?: Prisma.subscriptionOrderByRelationAggregateInput
@@ -315,6 +341,8 @@ export type PackageWhereUniqueInput = Prisma.AtLeast<{
   theme?: Prisma.StringFilter<"Package"> | string
   isPopular?: Prisma.BoolFilter<"Package"> | boolean
   isActive?: Prisma.BoolFilter<"Package"> | boolean
+  logoCount?: Prisma.IntFilter<"Package"> | number
+  bannerCount?: Prisma.IntFilter<"Package"> | number
   createdAt?: Prisma.DateTimeFilter<"Package"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Package"> | Date | string
   subscription?: Prisma.SubscriptionListRelationFilter
@@ -332,6 +360,8 @@ export type PackageOrderByWithAggregationInput = {
   theme?: Prisma.SortOrder
   isPopular?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  logoCount?: Prisma.SortOrder
+  bannerCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.PackageCountOrderByAggregateInput
@@ -356,6 +386,8 @@ export type PackageScalarWhereWithAggregatesInput = {
   theme?: Prisma.StringWithAggregatesFilter<"Package"> | string
   isPopular?: Prisma.BoolWithAggregatesFilter<"Package"> | boolean
   isActive?: Prisma.BoolWithAggregatesFilter<"Package"> | boolean
+  logoCount?: Prisma.IntWithAggregatesFilter<"Package"> | number
+  bannerCount?: Prisma.IntWithAggregatesFilter<"Package"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Package"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Package"> | Date | string
 }
@@ -372,6 +404,8 @@ export type PackageCreateInput = {
   theme?: string
   isPopular?: boolean
   isActive?: boolean
+  logoCount?: number
+  bannerCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   subscription?: Prisma.subscriptionCreateNestedManyWithoutPackageInput
@@ -389,6 +423,8 @@ export type PackageUncheckedCreateInput = {
   theme?: string
   isPopular?: boolean
   isActive?: boolean
+  logoCount?: number
+  bannerCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   subscription?: Prisma.subscriptionUncheckedCreateNestedManyWithoutPackageInput
@@ -406,6 +442,8 @@ export type PackageUpdateInput = {
   theme?: Prisma.StringFieldUpdateOperationsInput | string
   isPopular?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  logoCount?: Prisma.IntFieldUpdateOperationsInput | number
+  bannerCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   subscription?: Prisma.subscriptionUpdateManyWithoutPackageNestedInput
@@ -423,6 +461,8 @@ export type PackageUncheckedUpdateInput = {
   theme?: Prisma.StringFieldUpdateOperationsInput | string
   isPopular?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  logoCount?: Prisma.IntFieldUpdateOperationsInput | number
+  bannerCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   subscription?: Prisma.subscriptionUncheckedUpdateManyWithoutPackageNestedInput
@@ -440,6 +480,8 @@ export type PackageCreateManyInput = {
   theme?: string
   isPopular?: boolean
   isActive?: boolean
+  logoCount?: number
+  bannerCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -456,6 +498,8 @@ export type PackageUpdateManyMutationInput = {
   theme?: Prisma.StringFieldUpdateOperationsInput | string
   isPopular?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  logoCount?: Prisma.IntFieldUpdateOperationsInput | number
+  bannerCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -472,6 +516,8 @@ export type PackageUncheckedUpdateManyInput = {
   theme?: Prisma.StringFieldUpdateOperationsInput | string
   isPopular?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  logoCount?: Prisma.IntFieldUpdateOperationsInput | number
+  bannerCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -496,6 +542,8 @@ export type PackageCountOrderByAggregateInput = {
   theme?: Prisma.SortOrder
   isPopular?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  logoCount?: Prisma.SortOrder
+  bannerCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -503,6 +551,8 @@ export type PackageCountOrderByAggregateInput = {
 export type PackageAvgOrderByAggregateInput = {
   priceEur?: Prisma.SortOrder
   deliveryDays?: Prisma.SortOrder
+  logoCount?: Prisma.SortOrder
+  bannerCount?: Prisma.SortOrder
 }
 
 export type PackageMaxOrderByAggregateInput = {
@@ -516,6 +566,8 @@ export type PackageMaxOrderByAggregateInput = {
   theme?: Prisma.SortOrder
   isPopular?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  logoCount?: Prisma.SortOrder
+  bannerCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -531,6 +583,8 @@ export type PackageMinOrderByAggregateInput = {
   theme?: Prisma.SortOrder
   isPopular?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  logoCount?: Prisma.SortOrder
+  bannerCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -538,6 +592,8 @@ export type PackageMinOrderByAggregateInput = {
 export type PackageSumOrderByAggregateInput = {
   priceEur?: Prisma.SortOrder
   deliveryDays?: Prisma.SortOrder
+  logoCount?: Prisma.SortOrder
+  bannerCount?: Prisma.SortOrder
 }
 
 export type PackageScalarRelationFilter = {
@@ -600,6 +656,8 @@ export type PackageCreateWithoutSubscriptionInput = {
   theme?: string
   isPopular?: boolean
   isActive?: boolean
+  logoCount?: number
+  bannerCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -616,6 +674,8 @@ export type PackageUncheckedCreateWithoutSubscriptionInput = {
   theme?: string
   isPopular?: boolean
   isActive?: boolean
+  logoCount?: number
+  bannerCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -648,6 +708,8 @@ export type PackageUpdateWithoutSubscriptionInput = {
   theme?: Prisma.StringFieldUpdateOperationsInput | string
   isPopular?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  logoCount?: Prisma.IntFieldUpdateOperationsInput | number
+  bannerCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -664,6 +726,8 @@ export type PackageUncheckedUpdateWithoutSubscriptionInput = {
   theme?: Prisma.StringFieldUpdateOperationsInput | string
   isPopular?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  logoCount?: Prisma.IntFieldUpdateOperationsInput | number
+  bannerCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -711,6 +775,8 @@ export type PackageSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   theme?: boolean
   isPopular?: boolean
   isActive?: boolean
+  logoCount?: boolean
+  bannerCount?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   subscription?: boolean | Prisma.Package$subscriptionArgs<ExtArgs>
@@ -729,6 +795,8 @@ export type PackageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   theme?: boolean
   isPopular?: boolean
   isActive?: boolean
+  logoCount?: boolean
+  bannerCount?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["package"]>
@@ -745,6 +813,8 @@ export type PackageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   theme?: boolean
   isPopular?: boolean
   isActive?: boolean
+  logoCount?: boolean
+  bannerCount?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["package"]>
@@ -761,11 +831,13 @@ export type PackageSelectScalar = {
   theme?: boolean
   isPopular?: boolean
   isActive?: boolean
+  logoCount?: boolean
+  bannerCount?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type PackageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "tagline" | "description" | "priceEur" | "features" | "deliveryDays" | "theme" | "isPopular" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["package"]>
+export type PackageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "tagline" | "description" | "priceEur" | "features" | "deliveryDays" | "theme" | "isPopular" | "isActive" | "logoCount" | "bannerCount" | "createdAt" | "updatedAt", ExtArgs["result"]["package"]>
 export type PackageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   subscription?: boolean | Prisma.Package$subscriptionArgs<ExtArgs>
   _count?: boolean | Prisma.PackageCountOutputTypeDefaultArgs<ExtArgs>
@@ -790,6 +862,8 @@ export type $PackagePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     theme: string
     isPopular: boolean
     isActive: boolean
+    logoCount: number
+    bannerCount: number
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["package"]>
@@ -1227,6 +1301,8 @@ export interface PackageFieldRefs {
   readonly theme: Prisma.FieldRef<"Package", 'String'>
   readonly isPopular: Prisma.FieldRef<"Package", 'Boolean'>
   readonly isActive: Prisma.FieldRef<"Package", 'Boolean'>
+  readonly logoCount: Prisma.FieldRef<"Package", 'Int'>
+  readonly bannerCount: Prisma.FieldRef<"Package", 'Int'>
   readonly createdAt: Prisma.FieldRef<"Package", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Package", 'DateTime'>
 }

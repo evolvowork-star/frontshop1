@@ -47,6 +47,8 @@ model Package {
   theme        String   @default("light")   // ← added
   isPopular    Boolean  @default(false)
   isActive     Boolean  @default(true)
+  logoCount    Int      @default(1)    // ← new
+  bannerCount  Int      @default(1)
   subscription       subscription[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

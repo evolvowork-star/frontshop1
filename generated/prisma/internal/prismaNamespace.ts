@@ -918,6 +918,8 @@ export const PackageScalarFieldEnum = {
   theme: 'theme',
   isPopular: 'isPopular',
   isActive: 'isActive',
+  logoCount: 'logoCount',
+  bannerCount: 'bannerCount',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

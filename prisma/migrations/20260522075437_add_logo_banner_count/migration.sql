@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Package" ADD COLUMN     "bannerCount" INTEGER NOT NULL DEFAULT 1,
+ADD COLUMN     "logoCount" INTEGER NOT NULL DEFAULT 1;
