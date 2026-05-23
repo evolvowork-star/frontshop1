@@ -4,6 +4,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import AdminNavbar from "@/src/components/adminNavbar"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -693,7 +694,9 @@ function AIUsageTab({
 }
 
   return (
-    <div className="flex min-h-screen bg-stone-50 font-sans">
+    <div className="flex flex-col min-h-screen bg-stone-50 font-sans">
+      <AdminNavbar />
+       <div className="flex flex-1 overflow-hidden">
 
       {/* ── Toast ───────────────────────────────────────────────────────────── */}
       {toast && (
@@ -705,16 +708,7 @@ function AIUsageTab({
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
       <aside className="flex flex-col min-h-screen flex-shrink-0 w-56 bg-zinc-900 border-r border-zinc-800">
         {/* Logo */}
-        <div className="px-6 py-6 border-b border-zinc-800">
-          <div className="font-['Anton',sans-serif] text-lg text-amber-400 tracking-[0.08em] leading-tight">
-            ADMIN<br />
-            <span className="text-white text-[11px] font-mono font-normal tracking-[0.12em]">PANEL</span>
-          </div>
-          <p className="mt-3 text-[11px] font-mono text-zinc-500 truncate">{session.user?.email}</p>
-          <span className="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-bold font-mono tracking-wide bg-amber-400 text-zinc-900">
-            {(session.user as any).role}
-          </span>
-        </div>
+        
 
         {/* Nav */}
         <nav className="flex-1 py-4">
@@ -1347,6 +1341,7 @@ function AIUsageTab({
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

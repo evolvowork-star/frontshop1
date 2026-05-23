@@ -6,6 +6,7 @@ import { generateInvoicePDF } from "@/src/lib/invoice-pdf"
 import { sendOrderInvoiceEmail, sendAdminNewOrderEmail } from "@/src/lib/email-templates"
 import { getPackageBySlug } from "@/src/lib/package"
 import { decrypt } from "@/src/lib/encrypt"
+import sharp from "sharp"
 
 // ─── Invoice number generator ────────────────────────────────────────────────
 function generateInvoiceNo(): string {
@@ -45,6 +46,13 @@ async function getOpenAIKey(): Promise<string> {
   return decrypt(config.apiKeyEnc)
 }
 
+// ─── Convert PNG buffer to JPEG buffer ───────────────────────────────────────
+async function toJpeg(pngBuffer: Buffer): Promise<Buffer> {
+  return sharp(pngBuffer)
+    .jpeg({ quality: 95 })
+    .toBuffer()
+}
+
 // ─── Generate one image via gpt-image-1 ──────────────────────────────────────
 async function generateImage(
   apiKey: string,
@@ -52,7 +60,6 @@ async function generateImage(
   type: "logo" | "banner",
   index: number,
 ): Promise<{ buffer: Buffer; filename: string }> {
-  // logo = square, banner = landscape
   const size = type === "logo" ? "1024x1024" : "1536x1024"
 
   const systemContext = type === "logo"
@@ -84,7 +91,6 @@ async function generateImage(
 
   const data = await res.json()
 
-  // gpt-image-1 returns base64, not URL
   const b64 = data.data?.[0]?.b64_json
   if (!b64) throw new Error(`No image data returned for ${type} ${index + 1}`)
 
@@ -105,14 +111,12 @@ async function generateAllImages(
   const defaultLogoPrompt   = `A clean, professional, modern logo for a business called "${packageName}". Minimalist design, white background, bold typography.`
   const defaultBannerPrompt = `A professional wide-format digital marketing banner for a business called "${packageName}". Modern design, clean layout, vibrant colors.`
 
-  // Generate logos sequentially to avoid rate limits
   for (let i = 0; i < logoPrompts.length; i++) {
     const prompt = logoPrompts[i].trim() || defaultLogoPrompt
     const result = await generateImage(apiKey, prompt, "logo", i)
     results.push({ ...result, type: "logo" })
   }
 
-  // Generate banners sequentially
   for (let i = 0; i < bannerPrompts.length; i++) {
     const prompt = bannerPrompts[i].trim() || defaultBannerPrompt
     const result = await generateImage(apiKey, prompt, "banner", i)
@@ -122,9 +126,43 @@ async function generateAllImages(
   return results
 }
 
+// ─── Build email attachments: PNG + JPEG for every image ─────────────────────
+async function buildImageAttachments(
+  generatedImages: { buffer: Buffer; filename: string; type: "logo" | "banner" }[],
+) {
+  const attachments: {
+    content:     string
+    filename:    string
+    type:        string
+    disposition: "attachment"
+  }[] = []
+
+  for (const img of generatedImages) {
+    const baseName   = img.filename.replace(".png", "") // e.g. "logo-1"
+    const jpegBuffer = await toJpeg(img.buffer)
+
+    // PNG version
+    attachments.push({
+      content:     img.buffer.toString("base64"),
+      filename:    `${baseName}.png`,
+      type:        "image/png",
+      disposition: "attachment",
+    })
+
+    // JPEG version
+    attachments.push({
+      content:     jpegBuffer.toString("base64"),
+      filename:    `${baseName}.jpg`,
+      type:        "image/jpeg",
+      disposition: "attachment",
+    })
+  }
+
+  return attachments
+}
+
 // ─── Calculate cost (approximate) ────────────────────────────────────────────
 function calculateCost(logoCount: number, bannerCount: number): number {
-  // gpt-image-1 approximate pricing
   const logoCost   = logoCount   * 0.04
   const bannerCost = bannerCount * 0.07
   return parseFloat((logoCost + bannerCost).toFixed(4))
@@ -242,7 +280,7 @@ export async function POST(req: NextRequest) {
     // ── Background job (non-blocking) ──────────────────────────────────────
     ;(async () => {
       try {
-        // Generate all images
+        // Generate all images from AI
         const generatedImages = await generateAllImages(
           apiKey,
           logoPrompts,
@@ -287,18 +325,19 @@ export async function POST(req: NextRequest) {
           tagline: staticPack.tagline,
         })
 
-        // Prepare all generated images as email attachments
-        const imageAttachments = generatedImages.map((img) => ({
-          content:     img.buffer.toString("base64"),
-          filename:    img.filename,
-          type:        "image/png",
-          disposition: "attachment" as const,
-        }))
+        // Convert every AI image to both PNG + JPEG
+        // Result: logo-1.png, logo-1.jpg, logo-2.png, logo-2.jpg ... banner-1.png, banner-1.jpg ...
+        const imageAttachments = await buildImageAttachments(generatedImages)
 
-        // Send emails — user + admin, both get all images attached
+        console.log(
+          `[ORDER_ATTACHMENTS] ${imageAttachments.length} files ready for ${subscription.invoiceNo}`,
+          imageAttachments.map((a) => a.filename),
+        )
+
+        // Send to user + admin — both get all images (PNG + JPEG) + PDF
         await Promise.all([
           sendOrderInvoiceEmail(emailData, pdfBuffer, imageAttachments),
-          
+          sendAdminNewOrderEmail(emailData, pdfBuffer, imageAttachments),
         ])
 
         // Mark as COMPLETED
@@ -307,7 +346,9 @@ export async function POST(req: NextRequest) {
           data:  { status: "COMPLETED" },
         })
 
-        console.log(`[ORDER_DONE] ${subscription.invoiceNo} — ${generatedImages.length} images sent to ${user.email}`)
+        console.log(
+          `[ORDER_DONE] ${subscription.invoiceNo} — ${generatedImages.length} images (PNG+JPEG) sent to ${user.email}`,
+        )
 
       } catch (bgErr: any) {
         console.error("[ORDER_BACKGROUND_ERROR]", bgErr?.message ?? bgErr)

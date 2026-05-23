@@ -14,12 +14,17 @@ export default function Navbar({ currency, onCurrencyChange }: NavbarProps) {
   const { data: session } = useSession()
   const [menuOpen, setMenuOpen] = useState(false)
 
-  const isAdmin = session?.user && (session.user as any).role !== "USER"
+  const role    = (session?.user as any)?.role
+  const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN"
+
+  const accountLink  = isAdmin ? "/admin"     : "/dashboard"
+  const accountLabel = isAdmin ? "Admin"      : "Dashboard"
 
   return (
     <header className="sticky top-0 z-50 bg-[#F5F0E8] border-b-2 border-black">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Logo */}
+
+        {/* ── Logo ── */}
         <Link href="/" className="flex items-center gap-2">
           <div className="w-8 h-8 bg-[#FFD000] border-2 border-black flex items-center justify-center">
             <span className="text-black font-black text-xs">★</span>
@@ -27,22 +32,25 @@ export default function Navbar({ currency, onCurrencyChange }: NavbarProps) {
           <span className="font-black text-lg tracking-widest uppercase">PackShop</span>
         </Link>
 
-        {/* Center nav */}
+        {/* ── Center nav ── */}
         <nav className="hidden md:flex items-center gap-8">
-          <Link href="/#packs" className="text-sm font-bold uppercase tracking-widest hover:text-[#FFD000] transition-colors">
+          <Link href="/#packs"
+            className="text-sm font-bold uppercase tracking-widest hover:text-[#FFD000] transition-colors">
             Packs
           </Link>
-          <Link href="/#delivery" className="text-sm font-bold uppercase tracking-widest hover:text-[#FFD000] transition-colors">
+          <Link href="/#delivery"
+            className="text-sm font-bold uppercase tracking-widest hover:text-[#FFD000] transition-colors">
             Delivery
           </Link>
-          {isAdmin && (
-            <Link href="/admin" className="text-sm font-bold uppercase tracking-widest hover:text-[#FFD000] transition-colors">
-              Admin
+          {session && (
+            <Link href={accountLink}
+              className="text-sm font-bold uppercase tracking-widest hover:text-[#FFD000] transition-colors">
+              {accountLabel}
             </Link>
           )}
         </nav>
 
-        {/* Right side */}
+        {/* ── Right side ── */}
         <div className="flex items-center gap-4">
           <CurrencySelector value={currency} onChange={onCurrencyChange} />
 
@@ -52,20 +60,35 @@ export default function Navbar({ currency, onCurrencyChange }: NavbarProps) {
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="flex items-center gap-2 border-2 border-black px-4 py-2 text-sm font-bold uppercase tracking-widest hover:bg-black hover:text-[#FFD000] transition-colors"
               >
-                <span className="hidden md:inline">{session.user?.name?.split(" ")[0] ?? "Account"}</span>
+                <span className="hidden md:inline">
+                  {session.user?.name?.split(" ")[0] ?? "Account"}
+                </span>
                 <span>▾</span>
               </button>
+
               {menuOpen && (
-                <div className="absolute right-0 mt-1 w-44 bg-white border-2 border-black z-50">
-                  {isAdmin && (
-                    <Link
-                      href="/admin"
-                      className="block px-4 py-3 text-sm font-bold uppercase tracking-widest hover:bg-[#FFD000] transition-colors border-b border-black"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      Admin
-                    </Link>
-                  )}
+                <div className="absolute right-0 mt-1 w-48 bg-white border-2 border-black z-50">
+                  {/* Name display */}
+                  <div className="px-4 py-3 border-b-2 border-black bg-[#F5F0E8]">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                      Signed in as
+                    </p>
+                    <p className="text-sm font-black truncate mt-0.5">
+                      {session.user?.name ?? session.user?.email}
+                    </p>
+                  </div>
+
+                  {/* Dashboard or Admin link */}
+                  <Link
+                    href={accountLink}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center justify-between px-4 py-3 text-sm font-bold uppercase tracking-widest hover:bg-[#FFD000] transition-colors border-b border-gray-100"
+                  >
+                    <span>{accountLabel}</span>
+                    <span className="text-xs">→</span>
+                  </Link>
+
+                  {/* Sign out */}
                   <button
                     onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/" }) }}
                     className="w-full text-left px-4 py-3 text-sm font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors"

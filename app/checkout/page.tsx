@@ -7,7 +7,7 @@ import Link from "next/link"
 import { getPackageBySlug } from "@/src/lib/package"
 import { CURRENCIES, convertPrice, type Currency } from "@/src/lib/currency"
 
-type Tab = "logos" | "banners" | "details"
+type Tab = "logos" | "banners" | "details" | "payment"
 type GeneratingStatus = "idle" | "placing" | "generating" | "done" | "failed"
 
 function CheckoutContent() {
@@ -53,10 +53,10 @@ function CheckoutContent() {
   const price = convertPrice(pack.priceEur, currency)
   const currencyData = CURRENCIES.find((c) => c.code === currency)!
 
-  const filledLogos   = logoPrompts.filter((p) => p.trim().length > 0).length
+  const filledLogos = logoPrompts.filter((p) => p.trim().length > 0).length
   const filledBanners = bannerPrompts.filter((p) => p.trim().length > 0).length
-  const totalPrompts  = pack.logoCount + pack.bannerCount
-  const filledTotal   = filledLogos + filledBanners
+  const totalPrompts = pack.logoCount + pack.bannerCount
+  const filledTotal = filledLogos + filledBanners
 
   function updateLogoPrompt(index: number, value: string) {
     setLogoPrompts((prev) => { const u = [...prev]; u[index] = value; return u })
@@ -69,7 +69,7 @@ function CheckoutContent() {
   function startPolling(invoiceNo: string, packageName: string) {
     pollRef.current = setInterval(async () => {
       try {
-        const res  = await fetch(`/api/order/status?invoiceNo=${invoiceNo}`)
+        const res = await fetch(`/api/order/status?invoiceNo=${invoiceNo}`)
         const data = await res.json()
 
         if (data.status === "COMPLETED") {
@@ -99,9 +99,9 @@ function CheckoutContent() {
 
     try {
       const res = await fetch("/api/order", {
-        method:  "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ packageSlug: slug, currency, notes, logoPrompts, bannerPrompts }),
+        body: JSON.stringify({ packageSlug: slug, currency, notes, logoPrompts, bannerPrompts }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Order failed")
@@ -118,17 +118,18 @@ function CheckoutContent() {
   const isProcessing = genStatus === "placing" || genStatus === "generating"
 
   const generatingMessages: Record<GeneratingStatus, string> = {
-    idle:       "",
-    placing:    "Placing your order…",
+    idle: "",
+    placing: "Placing your order…",
     generating: `Generating your ${pack.logoCount + pack.bannerCount} designs with AI — this may take a few minutes…`,
-    done:       "Done!",
-    failed:     "Failed",
+    done: "Done!",
+    failed: "Failed",
   }
 
   const tabs: { id: Tab; label: string; count: number; filled: number }[] = [
-    { id: "logos",   label: "Logo Prompts",   count: pack.logoCount,   filled: filledLogos   },
+    { id: "logos", label: "Logo Prompts", count: pack.logoCount, filled: filledLogos },
     { id: "banners", label: "Banner Prompts", count: pack.bannerCount, filled: filledBanners },
-    { id: "details", label: "Order Details",  count: 0,                filled: 0             },
+    { id: "details", label: "Order Details", count: 0, filled: 0 },
+    { id: "payment", label: "Payment", count: 0, filled: 0 },
   ]
 
   return (
@@ -192,21 +193,19 @@ function CheckoutContent() {
                   key={tab.id}
                   onClick={() => !isProcessing && setActiveTab(tab.id)}
                   disabled={isProcessing}
-                  className={`flex-1 py-3 px-2 text-[10px] font-black uppercase tracking-widest transition-colors ${
-                    activeTab === tab.id
-                      ? "bg-black text-[#FFD000]"
-                      : "bg-white text-black hover:bg-[#F5F0E8]"
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  className={`flex-1 py-3 px-2 text-[10px] font-black uppercase tracking-widest transition-colors ${activeTab === tab.id
+                    ? "bg-black text-[#FFD000]"
+                    : "bg-white text-black hover:bg-[#F5F0E8]"
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {tab.label}
                   {tab.count > 0 && (
-                    <span className={`ml-1.5 inline-flex items-center justify-center w-5 h-5 text-[10px] font-black border ${
-                      activeTab === tab.id
-                        ? "border-[#FFD000] text-[#FFD000]"
-                        : tab.filled === tab.count
+                    <span className={`ml-1.5 inline-flex items-center justify-center w-5 h-5 text-[10px] font-black border ${activeTab === tab.id
+                      ? "border-[#FFD000] text-[#FFD000]"
+                      : tab.filled === tab.count
                         ? "border-green-600 text-green-600"
                         : "border-gray-400 text-gray-400"
-                    }`}>
+                      }`}>
                       {tab.filled}/{tab.count}
                     </span>
                   )}
@@ -233,9 +232,8 @@ function CheckoutContent() {
                   {logoPrompts.map((prompt, i) => (
                     <div key={i}>
                       <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">
-                        <span className={`w-5 h-5 flex items-center justify-center border-2 text-[10px] font-black ${
-                          prompt.trim() ? "bg-black text-[#FFD000] border-black" : "border-gray-300 text-gray-400"
-                        }`}>{i + 1}</span>
+                        <span className={`w-5 h-5 flex items-center justify-center border-2 text-[10px] font-black ${prompt.trim() ? "bg-black text-[#FFD000] border-black" : "border-gray-300 text-gray-400"
+                          }`}>{i + 1}</span>
                         Logo {i + 1}
                         {prompt.trim() && <span className="text-green-600 font-black">✓ Ready</span>}
                       </label>
@@ -279,9 +277,8 @@ function CheckoutContent() {
                   {bannerPrompts.map((prompt, i) => (
                     <div key={i}>
                       <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">
-                        <span className={`w-5 h-5 flex items-center justify-center border-2 text-[10px] font-black ${
-                          prompt.trim() ? "bg-black text-[#FFD000] border-black" : "border-gray-300 text-gray-400"
-                        }`}>{i + 1}</span>
+                        <span className={`w-5 h-5 flex items-center justify-center border-2 text-[10px] font-black ${prompt.trim() ? "bg-black text-[#FFD000] border-black" : "border-gray-300 text-gray-400"
+                          }`}>{i + 1}</span>
                         Banner {i + 1}
                         {prompt.trim() && <span className="text-green-600 font-black">✓ Ready</span>}
                       </label>
@@ -354,9 +351,8 @@ function CheckoutContent() {
                   <div className="flex flex-wrap gap-2">
                     {CURRENCIES.map((c) => (
                       <button key={c.code} onClick={() => setCurrency(c.code)} disabled={isProcessing}
-                        className={`px-4 py-2 text-sm font-black uppercase tracking-widest border-2 transition-colors disabled:opacity-50 ${
-                          currency === c.code ? "bg-black text-[#FFD000] border-black" : "bg-white text-black border-black hover:bg-[#F5F0E8]"
-                        }`}>
+                        className={`px-4 py-2 text-sm font-black uppercase tracking-widest border-2 transition-colors disabled:opacity-50 ${currency === c.code ? "bg-black text-[#FFD000] border-black" : "bg-white text-black border-black hover:bg-[#F5F0E8]"
+                          }`}>
                         {c.symbol} {c.code}
                       </button>
                     ))}
@@ -377,6 +373,102 @@ function CheckoutContent() {
                   <button onClick={() => setActiveTab("banners")}
                     className="text-xs font-black uppercase tracking-widest underline text-gray-500 hover:text-black transition-colors">
                     ← Edit Banner Prompts
+                  </button>
+                )}
+                {!isProcessing && (
+                  <button onClick={() => setActiveTab("payment")} disabled={isProcessing}
+                    className="w-full bg-black text-[#FFD000] py-3 text-sm font-black uppercase tracking-widest hover:bg-[#FFD000] hover:text-black transition-colors border-2 border-black disabled:opacity-50">
+                    Next: Payment →
+                  </button>
+                )}
+              </div>
+            )}
+            {/* ── Tab: Payment ── */}
+            {/* ── Tab: Payment ── */}
+            {activeTab === "payment" && (
+              <div className="border-2 border-t-0 border-black bg-white p-6 space-y-5">
+
+                {/* Name + Email */}
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Your Details</p>
+                  <div className="grid grid-cols-2 gap-4 bg-[#F5F0E8] border-2 border-black p-4">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Name</p>
+                      <p className="font-bold text-sm">{session?.user?.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Email</p>
+                      <p className="font-bold text-sm">{session?.user?.email}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 block">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="+92 300 0000000"
+                    className="w-full border-2 border-black bg-[#F5F0E8] px-4 py-3 text-sm font-medium focus:outline-none focus:bg-white focus:border-[#FFD000] transition-all placeholder:text-gray-400"
+                  />
+                </div>
+
+                {/* Billing Address */}
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 block">
+                    Billing Address
+                  </label>
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Street Address"
+                      className="w-full border-2 border-black bg-[#F5F0E8] px-4 py-3 text-sm font-medium focus:outline-none focus:bg-white focus:border-[#FFD000] transition-all placeholder:text-gray-400"
+                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        placeholder="City"
+                        className="w-full border-2 border-black bg-[#F5F0E8] px-4 py-3 text-sm font-medium focus:outline-none focus:bg-white focus:border-[#FFD000] transition-all placeholder:text-gray-400"
+                      />
+                      <input
+                        type="text"
+                        placeholder="ZIP / Postal Code"
+                        className="w-full border-2 border-black bg-[#F5F0E8] px-4 py-3 text-sm font-medium focus:outline-none focus:bg-white focus:border-[#FFD000] transition-all placeholder:text-gray-400"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Country"
+                      className="w-full border-2 border-black bg-[#F5F0E8] px-4 py-3 text-sm font-medium focus:outline-none focus:bg-white focus:border-[#FFD000] transition-all placeholder:text-gray-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Pay with Card heading */}
+                <div className="border-2 border-black">
+                  <div className="bg-[#FFD000] px-5 py-4 border-b-2 border-black">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-black/60 mb-0.5">Checkout</p>
+                    <h3 className="text-lg font-black uppercase tracking-tight text-black">Pay with Card</h3>
+                  </div>
+                  <div className="px-5 py-4 flex items-center gap-2">
+                    <span className="bg-[#1A1F71] text-white text-[9px] font-black px-2 py-1 uppercase tracking-wide">VISA</span>
+                    <span className="bg-[#EB001B] text-white text-[9px] font-black px-2 py-1 uppercase tracking-wide">MC</span>
+                    <span className="bg-black text-[#FFD000] text-[9px] font-black px-2 py-1 uppercase tracking-wide">AMEX</span>
+                    <span className="ml-auto text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 16 16">
+                        <rect x="3" y="7" width="10" height="8" rx="1" /><path d="M5 7V5a3 3 0 016 0v2" />
+                      </svg>
+                      SSL Secured
+                    </span>
+                  </div>
+                </div>
+
+                {!isProcessing && (
+                  <button onClick={() => setActiveTab("details")}
+                    className="text-xs font-black uppercase tracking-widest underline text-gray-500 hover:text-black transition-colors">
+                    ← Back to Order Details
                   </button>
                 )}
               </div>
@@ -478,14 +570,14 @@ function CheckoutContent() {
                 {!isProcessing && (
                   <button
                     onClick={handleOrder}
-                    disabled={activeTab !== "details"}
+                    disabled={activeTab !== "payment"}
                     className="w-full bg-[#FFD000] text-black py-4 text-sm font-black uppercase tracking-widest hover:bg-white transition-colors border-2 border-[#FFD000] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {activeTab !== "details" ? "Complete All Steps First" : `Buy ${pack.name} Pack →`}
+                    {activeTab !== "payment" ? "Complete All Steps First" : `Buy ${pack.name} Pack →`}
                   </button>
                 )}
 
-                {!isProcessing && activeTab !== "details" && (
+                {!isProcessing && activeTab !== "payment" && (
                   <p className="text-[10px] text-gray-500 text-center">
                     Please complete all steps before placing your order.
                   </p>
