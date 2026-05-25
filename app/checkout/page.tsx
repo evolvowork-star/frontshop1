@@ -7,7 +7,7 @@ import Link from "next/link"
 import { getPackageBySlug } from "@/src/lib/package"
 import { CURRENCIES, convertPrice, type Currency } from "@/src/lib/currency"
 
-type Tab = "logos" | "banners" | "details" | "payment"
+type Tab = string
 type GeneratingStatus = "idle" | "placing" | "generating" | "done" | "failed"
 
 function CheckoutContent() {
@@ -27,6 +27,7 @@ function CheckoutContent() {
 
   const [logoPrompts, setLogoPrompts] = useState<string[]>([])
   const [bannerPrompts, setBannerPrompts] = useState<string[]>([])
+  const [extraPrompts, setExtraPrompts] = useState<Record<string, string[]>>({})
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -38,8 +39,19 @@ function CheckoutContent() {
     if (pack) {
       setLogoPrompts(Array(pack.logoCount).fill(""))
       setBannerPrompts(Array(pack.bannerCount).fill(""))
+      // Initialize extra design prompts
+      const extras: Record<string, string[]> = {}
+      pack.extraDesigns.forEach((d) => { extras[d.key] = Array(d.count).fill("") })
+      setExtraPrompts(extras)
     }
   }, [pack])
+  function updateExtraPrompt(key: string, index: number, value: string) {
+    setExtraPrompts((prev) => {
+      const updated = { ...prev, [key]: [...(prev[key] ?? [])] }
+      updated[key][index] = value
+      return updated
+    })
+  }
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -55,8 +67,17 @@ function CheckoutContent() {
 
   const filledLogos = logoPrompts.filter((p) => p.trim().length > 0).length
   const filledBanners = bannerPrompts.filter((p) => p.trim().length > 0).length
-  const totalPrompts = pack.logoCount + pack.bannerCount
-  const filledTotal = filledLogos + filledBanners
+
+  const filledExtra: Record<string, number> = {}
+  pack?.extraDesigns.forEach((d) => {
+    filledExtra[d.key] = (extraPrompts[d.key] ?? []).filter((p) => p.trim().length > 0).length
+  })
+  const totalExtraPrompts = pack?.extraDesigns.reduce((s, d) => s + d.count, 0) ?? 0
+  const filledExtraTotal = Object.values(filledExtra).reduce((s, n) => s + n, 0)
+
+  // Update totals:
+  const totalPrompts = pack.logoCount + pack.bannerCount + totalExtraPrompts
+  const filledTotal = filledLogos + filledBanners + filledExtraTotal
 
   function updateLogoPrompt(index: number, value: string) {
     setLogoPrompts((prev) => { const u = [...prev]; u[index] = value; return u })
@@ -90,8 +111,8 @@ function CheckoutContent() {
 
   async function handleOrder() {
     if (!pack) return
-    if (filledLogos === 0 && filledBanners === 0) {
-      setError("Please provide at least one logo or banner prompt before placing your order.")
+    if (filledLogos === 0 && filledBanners === 0 && filledExtraTotal === 0) {
+      setError("Please provide at least one prompt before placing your order.")
       return
     }
     setError("")
@@ -101,7 +122,7 @@ function CheckoutContent() {
       const res = await fetch("/api/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packageSlug: slug, currency, notes, logoPrompts, bannerPrompts }),
+        body: JSON.stringify({ packageSlug: slug, currency, notes, logoPrompts, bannerPrompts, extraPrompts }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Order failed")
@@ -128,6 +149,12 @@ function CheckoutContent() {
   const tabs: { id: Tab; label: string; count: number; filled: number }[] = [
     { id: "logos", label: "Logo Prompts", count: pack.logoCount, filled: filledLogos },
     { id: "banners", label: "Banner Prompts", count: pack.bannerCount, filled: filledBanners },
+    ...pack.extraDesigns.map((d) => ({
+      id: d.key,
+      label: d.pluralLabel,
+      count: d.count,
+      filled: filledExtra[d.key] ?? 0,
+    })),
     { id: "details", label: "Order Details", count: 0, filled: 0 },
     { id: "payment", label: "Payment", count: 0, filled: 0 },
   ]
@@ -298,14 +325,83 @@ function CheckoutContent() {
                     className="flex-1 py-3 text-sm font-black uppercase tracking-widest border-2 border-black hover:bg-black hover:text-white transition-colors disabled:opacity-50">
                     ← Back
                   </button>
-                  <button onClick={() => setActiveTab("details")} disabled={isProcessing}
+                  <button onClick={() => {
+                    const nextTab = pack.extraDesigns.length > 0 ? pack.extraDesigns[0].key : "details"
+                    setActiveTab(nextTab)
+                  }}
                     className="flex-1 bg-black text-[#FFD000] py-3 text-sm font-black uppercase tracking-widest hover:bg-[#FFD000] hover:text-black transition-colors border-2 border-black disabled:opacity-50">
                     Next: Order Details →
                   </button>
                 </div>
               </div>
             )}
+            {pack.extraDesigns.map((design, di) =>
+              activeTab === design.key ? (
+                <div key={design.key} className="border-2 border-t-0 border-black bg-white p-6 space-y-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">
+                        {design.pluralLabel}
+                      </p>
+                      <p className="text-sm text-gray-600 leading-relaxed max-w-sm">
+                        Provide a prompt for each {design.label.toLowerCase()}. Describe style, colors, mood,
+                        and any specific text or elements you need.
+                      </p>
+                    </div>
+                    <div className="bg-[#FFD000] border-2 border-black px-3 py-1.5 text-center shrink-0">
+                      <p className="text-[10px] font-black uppercase tracking-widest">Total</p>
+                      <p className="text-xl font-black leading-none">{design.count}</p>
+                    </div>
+                  </div>
 
+                  <div className="space-y-4">
+                    {(extraPrompts[design.key] ?? []).map((prompt, i) => (
+                      <div key={i}>
+                        <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">
+                          <span className={`w-5 h-5 flex items-center justify-center border-2 text-[10px] font-black ${prompt.trim() ? "bg-black text-[#FFD000] border-black" : "border-gray-300 text-gray-400"
+                            }`}>{i + 1}</span>
+                          {design.label} {i + 1}
+                          {prompt.trim() && <span className="text-green-600 font-black">✓ Ready</span>}
+                        </label>
+                        <textarea
+                          value={prompt}
+                          onChange={(e) => updateExtraPrompt(design.key, i, e.target.value)}
+                          disabled={isProcessing}
+                          rows={3}
+                          placeholder={design.promptPlaceholder}
+                          className="w-full border-2 border-black bg-[#F5F0E8] px-4 py-3 text-sm font-medium focus:outline-none focus:bg-white focus:border-[#FFD000] transition-all resize-none placeholder:text-gray-400 disabled:opacity-60"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        // Go to previous tab
+                        const prevTab = di === 0 ? "banners" : pack.extraDesigns[di - 1].key
+                        setActiveTab(prevTab)
+                      }}
+                      disabled={isProcessing}
+                      className="flex-1 py-3 text-sm font-black uppercase tracking-widest border-2 border-black hover:bg-black hover:text-white transition-colors disabled:opacity-50"
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Go to next tab
+                        const nextTab = di === pack.extraDesigns.length - 1 ? "details" : pack.extraDesigns[di + 1].key
+                        setActiveTab(nextTab)
+                      }}
+                      disabled={isProcessing}
+                      className="flex-1 bg-black text-[#FFD000] py-3 text-sm font-black uppercase tracking-widest hover:bg-[#FFD000] hover:text-black transition-colors border-2 border-black disabled:opacity-50"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                </div>
+              ) : null
+            )}
             {/* ── Tab: Order Details ── */}
             {activeTab === "details" && (
               <div className="border-2 border-t-0 border-black bg-white p-6 space-y-5">
