@@ -665,7 +665,7 @@ function CheckoutContent() {
                     </div>
                     <div className="space-y-3">
                       <div>
-                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 block">Full Name</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 block">Full Name<span className="text-red-500 text-sm">*</span></label>
                         <input
                           type="text"
                           value={guestName}
@@ -673,10 +673,11 @@ function CheckoutContent() {
                           disabled={isProcessing}
                           placeholder="John Doe"
                           className={inputCls}
+                          required
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 block">Email Address</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 block">Email Address<span className="text-red-500 text-sm">*</span></label>
                         <input
                           type="email"
                           value={guestEmail}
@@ -684,6 +685,7 @@ function CheckoutContent() {
                           disabled={isProcessing}
                           placeholder="john@example.com"
                           className={inputCls}
+                          required
                         />
                       </div>
                     </div>
@@ -692,7 +694,7 @@ function CheckoutContent() {
 
                 {/* ── Phone ── */}
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 block">Phone Number</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 block">Phone Number<span className="text-red-500 text-sm">*</span></label>
                   <input
                     type="tel"
                     value={phone}
@@ -705,7 +707,7 @@ function CheckoutContent() {
 
                 {/* ── Billing Address ── */}
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 block">Billing Address</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 block">Billing Address<span className="text-red-500 text-sm">*</span></label>
                   <div className="space-y-3">
                     <input
                       type="text"
