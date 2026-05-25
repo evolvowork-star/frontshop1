@@ -53,8 +53,8 @@ function LoginContent() {
             <h1 className="text-5xl font-black uppercase leading-none tracking-tighter">
               SIGN
             </h1>
-            <h2 className="text-5xl font-black italic leading-none tracking-tight"
-              style={{ fontFamily: "Georgia, serif" }}>
+            <h2 className="font-(family-name:--font-playfair) text-5xl font-black italic leading-none tracking-tight"
+              >
               in.
             </h2>
             {callbackUrl !== "/" && (

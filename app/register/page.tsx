@@ -68,8 +68,8 @@ function RegisterContent() {
               ★ New Account
             </div>
             <h1 className="text-5xl font-black uppercase leading-none tracking-tighter">CREATE</h1>
-            <h2 className="text-5xl font-black italic leading-none tracking-tight"
-              style={{ fontFamily: "Georgia, serif" }}>
+            <h2 className="font-(family-name:--font-playfair) text-5xl font-black italic leading-none tracking-tight"
+              >
               account.
             </h2>
           </div>

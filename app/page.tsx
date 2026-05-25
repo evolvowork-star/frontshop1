@@ -25,8 +25,8 @@ function HomeContent() {
           GET IT.
         </h1>
         <h2
-          className="text-[clamp(40px,7vw,90px)] font-black italic leading-none tracking-tight text-black -mt-2"
-          style={{ fontFamily: "Georgia, serif" }}
+          className="font-(family-name:--font-playfair) text-[clamp(40px,7vw,90px)] font-black italic leading-none tracking-tight text-black -mt-2"
+          
         >
           sorted. <span className="text-[#FFD000] not-italic">✦</span>
         </h2>
@@ -61,7 +61,7 @@ function HomeContent() {
           </div>
           <h2 className="text-[clamp(48px,8vw,100px)] font-black uppercase leading-none tracking-tighter">
             PICK A{" "}
-            <span className="italic font-black" style={{ fontFamily: "Georgia, serif" }}>
+            <span className="font-(family-name:--font-playfair) italic font-black" >
               pack.
             </span>
           </h2>
@@ -93,7 +93,7 @@ function HomeContent() {
           </div>
           <h2 className="text-[clamp(40px,7vw,90px)] font-black uppercase leading-none tracking-tighter">
             FILES,{" "}
-            <span className="italic" style={{ fontFamily: "Georgia, serif" }}>
+            <span className="font-(family-name:--font-playfair) italic">
               delivered.
             </span>
           </h2>
@@ -121,8 +121,8 @@ function HomeContent() {
             },
           ].map((step) => (
             <div key={step.num} className={`p-8 ${step.bg}`}>
-              <p className={`font-black italic text-4xl mb-3 ${step.bg.includes("111") ? "text-[#FFD000]" : "text-black"}`}
-                style={{ fontFamily: "Georgia, serif" }}>
+              <p className={`font-(family-name:--font-playfair) font-black italic text-4xl mb-3 ${step.bg.includes("111") ? "text-[#FFD000]" : "text-black"}`}
+                >
                 {step.num}
               </p>
               <h3 className={`text-lg font-black uppercase tracking-widest mb-2 ${step.bg.includes("111") ? "text-white" : "text-black"}`}>
