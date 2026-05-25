@@ -54,11 +54,8 @@ export default function PackageCard({ pack, currency }: Props) {
   const symbol = getCurrencySymbol(currency)
 
   function handleSelect() {
-    if (!session) {
-      router.push(`/login?callbackUrl=/checkout?package=${pack.slug}`)
-    } else {
+    
       router.push(`/checkout?package=${pack.slug}`)
-    }
   }
 
   return (

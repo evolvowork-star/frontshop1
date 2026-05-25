@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
+import Footer from "@/src/components/footer";
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
@@ -35,6 +36,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <SessionProvider>
         {children}
+        <Footer/>
         </SessionProvider>
         </body>
     </html>

@@ -20,20 +20,10 @@ export async function middleware(req: NextRequest) {
   }
 
   // ── Checkout routes ───────────────────────────────────────────────────────
-  if (pathname.startsWith("/checkout")) {
-    if (!token) {
-      const url = new URL("/login", req.url)
-      // preserve the package query param so we redirect back correctly
-      const pkg = searchParams.get("package")
-      const callbackUrl = pkg ? `/checkout?package=${pkg}` : "/checkout"
-      url.searchParams.set("callbackUrl", callbackUrl)
-      return NextResponse.redirect(url)
-    }
-  }
-
+   
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/checkout", "/checkout/:path*"],
+  matcher: ["/admin/:path*",],
 }

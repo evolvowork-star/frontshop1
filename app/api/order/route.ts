@@ -6,6 +6,7 @@ import { generateInvoicePDF } from "@/src/lib/invoice-pdf"
 import { sendOrderInvoiceEmail, sendAdminNewOrderEmail } from "@/src/lib/email-templates"
 import { getPackageBySlug, type DesignTypeConfig } from "@/src/lib/package"
 import { decrypt } from "@/src/lib/encrypt"
+import bcrypt from "bcryptjs"
 import sharp from "sharp"
 
 // ─── Invoice number generator ────────────────────────────────────────────────
@@ -92,14 +93,14 @@ async function generateImage(
   return { buffer, filename }
 }
 
-// ─── Generate all images (logos + banners) ───────────────────────────────────
+// ─── Generate all images (logos + banners + extras) ──────────────────────────
 async function generateAllImages(
   apiKey: string,
   logoPrompts: string[],
   bannerPrompts: string[],
-  extraPrompts: Record<string, string[]>,   // ← new
+  extraPrompts: Record<string, string[]>,
   packageName: string,
-  extraDesigns: DesignTypeConfig[],          // ← new
+  extraDesigns: DesignTypeConfig[],
 ): Promise<{ buffer: Buffer; filename: string; type: string }[]> {
   const results: { buffer: Buffer; filename: string; type: string }[] = []
 
@@ -109,19 +110,16 @@ async function generateAllImages(
   const defaultLogo = `A clean, professional, modern logo for a business called "${packageName}". Minimalist design, white background, bold typography.`
   const defaultBanner = `A professional wide-format digital marketing banner for "${packageName}". Modern design, clean layout, vibrant colors.`
 
-  // Logos
   for (let i = 0; i < logoPrompts.length; i++) {
     const r = await generateImage(apiKey, logoPrompts[i].trim() || defaultLogo, "1024x1024", LOGO_CONTEXT, `logo-${i + 1}.png`)
     results.push({ ...r, type: "logo" })
   }
 
-  // Banners
   for (let i = 0; i < bannerPrompts.length; i++) {
     const r = await generateImage(apiKey, bannerPrompts[i].trim() || defaultBanner, "1536x1024", BANNER_CONTEXT, `banner-${i + 1}.png`)
     results.push({ ...r, type: "banner" })
   }
 
-  // Extra designs (social, thumbnail, icon, hero, businesscard, etc.)
   for (const design of extraDesigns) {
     const prompts = extraPrompts[design.key] ?? []
     const defaultPrompt = `A professional ${design.label.toLowerCase()} for a brand called "${packageName}". High quality, clean design.`
@@ -152,10 +150,9 @@ async function buildImageAttachments(
   }[] = []
 
   for (const img of generatedImages) {
-    const baseName = img.filename.replace(".png", "") // e.g. "logo-1"
+    const baseName = img.filename.replace(".png", "")
     const jpegBuffer = await toJpeg(img.buffer)
 
-    // PNG version
     attachments.push({
       content: img.buffer.toString("base64"),
       filename: `${baseName}.png`,
@@ -163,7 +160,6 @@ async function buildImageAttachments(
       disposition: "attachment",
     })
 
-    // JPEG version
     attachments.push({
       content: jpegBuffer.toString("base64"),
       filename: `${baseName}.jpg`,
@@ -179,7 +175,6 @@ async function buildImageAttachments(
 function calculateCost(logoCount: number, bannerCount: number, extraDesigns: DesignTypeConfig[]): number {
   const logoCost = logoCount * 0.04
   const bannerCost = bannerCount * 0.07
-  // Extra designs: square=0.04, wide=0.07
   const extraCost = extraDesigns.reduce((sum, d) => {
     const perImage = d.imageSize === "1024x1024" ? 0.04 : 0.07
     return sum + d.count * perImage
@@ -192,9 +187,6 @@ export async function POST(req: NextRequest) {
   try {
     // 1. Auth check
     const session = await auth()
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
 
     // 2. Parse body
     const {
@@ -203,7 +195,9 @@ export async function POST(req: NextRequest) {
       notes,
       logoPrompts = [] as string[],
       bannerPrompts = [] as string[],
-      extraPrompts = {} as Record<string, string[]>,   // ← add this
+      extraPrompts = {} as Record<string, string[]>,
+      guestName,
+      guestEmail,
     } = await req.json()
 
     if (!packageSlug) {
@@ -239,10 +233,53 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 5. Get user
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } })
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    // 5. Resolve user
+    //    Case A: logged-in session → use session email
+    //    Case B: no session → guestName + guestEmail required → find or create
+    let user: { id: string; name: string | null; email: string }
+    let newUserCredentials: { email: string; password: string } | undefined
+
+    if (session?.user?.email) {
+      // ── Case A: logged-in user ──────────────────────────────────────────
+      const found = await prisma.user.findUnique({ where: { email: session.user.email } })
+      if (!found) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 })
+      }
+      user = found
+
+    } else {
+      // ── Case B: guest checkout ──────────────────────────────────────────
+      if (!guestEmail?.trim() || !guestName?.trim()) {
+        return NextResponse.json(
+          { error: "Please provide your name and email to continue." },
+          { status: 400 },
+        )
+      }
+
+      const email = guestEmail.trim().toLowerCase()
+      const existing = await prisma.user.findUnique({ where: { email } })
+
+      if (existing) {
+        // Account already exists — use it, do NOT expose credentials again
+        user = existing
+      } else {
+        // New guest → auto-register with email as password
+        const plainPassword = email                          // password = email
+        const passwordHash = await bcrypt.hash(plainPassword, 12)
+
+        const created = await prisma.user.create({
+          data: {
+            name: guestName.trim(),
+            email,
+            passwordHash,
+          },
+        })
+
+        user = created
+        newUserCredentials = { email, password: plainPassword }
+
+        console.log(`[ORDER_GUEST_REGISTER] New account created for ${email}`)
+      }
     }
 
     // 6. Get AI API key
@@ -308,92 +345,86 @@ export async function POST(req: NextRequest) {
     // 11. Return invoiceNo immediately — frontend starts polling
     const responsePayload = { invoiceNo: subscription.invoiceNo }
 
-      // ── Background job (non-blocking) ──────────────────────────────────────
-      ; (async () => {
-        try {
-          // Generate all images from AI
-          const generatedImages = await generateAllImages(
-            apiKey,
-            logoPrompts,
-            bannerPrompts,
-            extraPrompts,
-            staticPack.name,
-            staticPack.extraDesigns,
-          )
+    // ── Background job (non-blocking) ──────────────────────────────────────
+    ;(async () => {
+      try {
+        const generatedImages = await generateAllImages(
+          apiKey,
+          logoPrompts,
+          bannerPrompts,
+          extraPrompts,
+          staticPack.name,
+          staticPack.extraDesigns,
+        )
 
-          // Log AI usage
-          const costUsd = calculateCost(staticPack.logoCount, staticPack.bannerCount, staticPack.extraDesigns)
-          await prisma.aIUsageLog.create({
-            data: {
-              userId: user.id,
-              packageId: dbPackage.id,
-              packageSlug: staticPack.slug,
-              packageName: staticPack.name,
-              tokensIn: 0,
-              tokensOut: 0,
-              costUsd,
-            },
-          })
-
-          // Build email data
-          const emailData = {
-            userName: user.name ?? "Customer",
-            userEmail: user.email,
-            invoiceNo: subscription.invoiceNo,
+        const costUsd = calculateCost(staticPack.logoCount, staticPack.bannerCount, staticPack.extraDesigns)
+        await prisma.aIUsageLog.create({
+          data: {
+            userId: user.id,
+            packageId: dbPackage.id,
+            packageSlug: staticPack.slug,
             packageName: staticPack.name,
-            features: staticPack.features,
-            deliveryDays: staticPack.deliveryDays,
-            amount,
-            currency: selectedCurrency,
-            currencySymbol,
-            subscriptionId: subscription.id,
-            createdAt: subscription.createdAt,
-            logoCount: staticPack.logoCount,
-            bannerCount: staticPack.bannerCount,
-          }
+            tokensIn: 0,
+            tokensOut: 0,
+            costUsd,
+          },
+        })
 
-          // Generate invoice PDF
-          const pdfBuffer = await generateInvoicePDF({
-            ...emailData,
-            tagline: staticPack.tagline,
-          })
-
-          // Convert every AI image to both PNG + JPEG
-          // Result: logo-1.png, logo-1.jpg, logo-2.png, logo-2.jpg ... banner-1.png, banner-1.jpg ...
-          const imageAttachments = await buildImageAttachments(generatedImages)
-
-          console.log(
-            `[ORDER_ATTACHMENTS] ${imageAttachments.length} files ready for ${subscription.invoiceNo}`,
-            imageAttachments.map((a) => a.filename),
-          )
-
-          // Send to user + admin — both get all images (PNG + JPEG) + PDF
-          await Promise.all([
-            sendOrderInvoiceEmail(emailData, pdfBuffer, imageAttachments),
-            sendAdminNewOrderEmail(emailData, pdfBuffer, imageAttachments),
-          ])
-
-          // Mark as COMPLETED
-          await prisma.subscription.update({
-            where: { id: subscription.id },
-            data: { status: "COMPLETED" },
-          })
-
-          console.log(
-            `[ORDER_DONE] ${subscription.invoiceNo} — ${generatedImages.length} images (PNG+JPEG) sent to ${user.email}`,
-          )
-
-        } catch (bgErr: any) {
-          console.error("[ORDER_BACKGROUND_ERROR]", bgErr?.message ?? bgErr)
-          await prisma.subscription.update({
-            where: { id: subscription.id },
-            data: {
-              status: "CANCELLED",
-              notes: `Generation failed: ${bgErr?.message ?? "Unknown error"}`,
-            },
-          }).catch(() => { })
+        const emailData = {
+          userName: user.name ?? "Customer",
+          userEmail: user.email,
+          invoiceNo: subscription.invoiceNo,
+          packageName: staticPack.name,
+          features: staticPack.features,
+          deliveryDays: staticPack.deliveryDays,
+          amount,
+          currency: selectedCurrency,
+          currencySymbol,
+          subscriptionId: subscription.id,
+          createdAt: subscription.createdAt,
+          logoCount: staticPack.logoCount,
+          bannerCount: staticPack.bannerCount,
+          // Only set if a new account was created this order
+          newUserCredentials,
         }
-      })()
+
+        const pdfBuffer = await generateInvoicePDF({
+          ...emailData,
+          tagline: staticPack.tagline,
+        })
+
+        const imageAttachments = await buildImageAttachments(generatedImages)
+
+        console.log(
+          `[ORDER_ATTACHMENTS] ${imageAttachments.length} files ready for ${subscription.invoiceNo}`,
+          imageAttachments.map((a) => a.filename),
+        )
+
+        await Promise.all([
+          sendOrderInvoiceEmail(emailData, pdfBuffer, imageAttachments),
+          sendAdminNewOrderEmail(emailData, pdfBuffer, imageAttachments),
+        ])
+
+        await prisma.subscription.update({
+          where: { id: subscription.id },
+          data: { status: "COMPLETED" },
+        })
+
+        console.log(
+          `[ORDER_DONE] ${subscription.invoiceNo} — ${generatedImages.length} images (PNG+JPEG) sent to ${user.email}`,
+        )
+
+      } catch (bgErr: any) {
+        console.error("[ORDER_BACKGROUND_ERROR]", bgErr?.message ?? bgErr)
+        await prisma.subscription.update({
+          where: { id: subscription.id },
+          data: {
+            status: "CANCELLED",
+            notes: `Generation failed: ${bgErr?.message ?? "Unknown error"}`,
+          },
+        }).catch(() => {})
+      }
+    })()
 
     return NextResponse.json(responsePayload, { status: 201 })
 

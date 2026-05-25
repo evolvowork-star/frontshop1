@@ -1,19 +1,21 @@
 import { transporter } from "./mailer"
 
 export interface OrderEmailData {
-  userName:       string
-  userEmail:      string
-  invoiceNo:      string
-  packageName:    string
-  features:       string[]
-  deliveryDays:   number
-  amount:         number
-  currency:       string
-  currencySymbol: string
-  subscriptionId: string
-  createdAt:      Date
-  logoCount?:     number
-  bannerCount?:   number
+  userName:             string
+  userEmail:            string
+  invoiceNo:            string
+  packageName:          string
+  features:             string[]
+  deliveryDays:         number
+  amount:               number
+  currency:             string
+  currencySymbol:       string
+  subscriptionId:       string
+  createdAt:            Date
+  logoCount?:           number
+  bannerCount?:         number
+  // Set only when a new account was auto-created for a guest
+  newUserCredentials?:  { email: string; password: string }
 }
 
 export interface EmailAttachment {
@@ -38,13 +40,11 @@ export async function sendOrderInvoiceEmail(
     subject: `Your designs are ready — Invoice ${data.invoiceNo}`,
     html:    buildUserHtml(data, logoFiles.length, bannerFiles.length),
     attachments: [
-      // PDF invoice
       {
         filename:    `${data.invoiceNo}.pdf`,
         content:     pdfBuffer,
         contentType: "application/pdf",
       },
-      // All generated images
       ...imageAttachments.map((img) => ({
         filename:    img.filename,
         content:     Buffer.from(img.content, "base64"),
@@ -82,8 +82,12 @@ export async function sendAdminNewOrderEmail(
               <td style="padding:8px;font-weight:bold;color:#16a34a;border-bottom:1px solid #eee">${data.currencySymbol}${data.amount} ${data.currency}</td></tr>
           <tr><td style="padding:8px;color:#666;border-bottom:1px solid #eee">Logos</td>
               <td style="padding:8px;border-bottom:1px solid #eee">${data.logoCount ?? 0} generated</td></tr>
-          <tr><td style="padding:8px;color:#666">Banners</td>
-              <td style="padding:8px">${data.bannerCount ?? 0} generated</td></tr>
+          <tr><td style="padding:8px;color:#666;border-bottom:1px solid #eee">Banners</td>
+              <td style="padding:8px;border-bottom:1px solid #eee">${data.bannerCount ?? 0} generated</td></tr>
+          ${data.newUserCredentials ? `
+          <tr><td style="padding:8px;color:#666;border-bottom:1px solid #eee">Account</td>
+              <td style="padding:8px;color:#b45309;border-bottom:1px solid #eee">New account auto-created</td></tr>
+          ` : ""}
         </table>
         <p style="font-size:12px;color:#999;margin-top:16px">
           All generated files and PDF invoice are attached below.
@@ -120,9 +124,39 @@ function buildUserHtml(
     .join("")
 
   const attachmentSummary = [
-    logoCount   > 0 ? `${logoCount} Logo${logoCount > 1 ? "s" : ""}`     : "",
+    logoCount   > 0 ? `${logoCount} Logo${logoCount > 1 ? "s" : ""}`      : "",
     bannerCount > 0 ? `${bannerCount} Banner${bannerCount > 1 ? "s" : ""}` : "",
   ].filter(Boolean).join(" &amp; ")
+
+  // ── Credentials block (only for newly auto-created accounts) ──────────────
+  const credentialsBlock = data.newUserCredentials ? `
+    <div style="margin-top:24px;padding:20px 24px;background:#fffbeb;border:1px solid #fcd34d;border-left:4px solid #f59e0b">
+      <div style="font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#92400e;margin-bottom:10px">
+        Your Account Has Been Created
+      </div>
+      <p style="font-size:12px;color:#78350f;margin:0 0 12px;line-height:1.6">
+        We created a Brief Lab Studio account for you so you can track your order.
+        Use the credentials below to log in anytime.
+      </p>
+      <table style="border-collapse:collapse;width:100%">
+        <tr>
+          <td style="padding:6px 0;font-size:12px;color:#92400e;width:80px">Email</td>
+          <td style="padding:6px 0;font-size:12px;font-weight:bold;color:#111;font-family:monospace">
+            ${data.newUserCredentials.email}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;font-size:12px;color:#92400e">Password</td>
+          <td style="padding:6px 0;font-size:12px;font-weight:bold;color:#111;font-family:monospace">
+            ${data.newUserCredentials.password}
+          </td>
+        </tr>
+      </table>
+      <p style="font-size:11px;color:#b45309;margin:12px 0 0">
+        For your security, please change your password after logging in.
+      </p>
+    </div>
+  ` : ""
 
   return `
 <!DOCTYPE html>
@@ -230,6 +264,9 @@ function buildUserHtml(
         </tr>
       </table>
     </div>
+
+    <!-- Account credentials (only for new auto-created accounts) -->
+    ${credentialsBlock}
 
     <!-- Instructions -->
     <div style="margin-top:24px;padding:16px;border-left:3px solid #FFD000;background:#fffdf0">
