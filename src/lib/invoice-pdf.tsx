@@ -88,7 +88,7 @@ function InvoiceDoc({ d }: { d: InvoicePDFData }) {
         {/* ── Header ── */}
         <View style={s.header}>
           <View>
-            <Text style={s.headerTitle}>★ PACKSHOP</Text>
+            <Text style={s.headerTitle}>★ Brief Lab Studio</Text>
             <Text style={s.headerSub}>OFFICIAL TAX INVOICE</Text>
           </View>
           <View style={s.paidBadge}>
@@ -162,7 +162,7 @@ function InvoiceDoc({ d }: { d: InvoicePDFData }) {
 
         {/* ── Footer ── */}
         <View style={s.footer}>
-          <Text style={s.footerText}>© {new Date().getFullYear()} PackShop. All rights reserved.</Text>
+          <Text style={s.footerText}>© {new Date().getFullYear()} Brief Lab Studio. All rights reserved.</Text>
           <Text style={s.footerText}>Automated invoice — please do not reply.</Text>
         </View>
 

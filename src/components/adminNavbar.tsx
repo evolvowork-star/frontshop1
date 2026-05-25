@@ -40,7 +40,7 @@ export default function AdminNavbar() {
             <span className="text-black font-black text-[9px]">★</span>
           </div>
           <span className="font-black text-[11px] tracking-widest uppercase text-zinc-500 group-hover:text-amber-400 transition-colors">
-            PackShop
+            Brief Lab Studio
           </span>
         </Link>
         <span className="text-zinc-700 text-xs">/</span>

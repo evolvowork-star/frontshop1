@@ -67,7 +67,7 @@ function HomeContent() {
           </h2>
           <p className="text-gray-600 mt-4 text-sm">
             Each pack is delivered in 2–7 days. Need something custom?{" "}
-            <a href="mailto:hello@packshop.com" className="font-bold underline">Get in touch.</a>
+            <a href="mailto:hello@brieflabstudio.com" className="font-bold underline">Get in touch.</a>
           </p>
 
           {/* Currency selector inline */}
@@ -143,10 +143,10 @@ function HomeContent() {
             <div className="w-7 h-7 bg-[#FFD000] border-2 border-[#FFD000] flex items-center justify-center">
               <span className="text-black font-black text-xs">★</span>
             </div>
-            <span className="font-black text-base tracking-widest uppercase">PackShop</span>
+            <span className="font-black text-base tracking-widest uppercase">Brief Lab Studio</span>
           </div>
           <p className="text-gray-500 text-xs uppercase tracking-widest">
-            © {new Date().getFullYear()} PackShop. All rights reserved.
+            © {new Date().getFullYear()} Brief Lab Studio. All rights reserved.
           </p>
           <div className="flex gap-6">
             <a href="/#packs" className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-[#FFD000] transition-colors">Packs</a>

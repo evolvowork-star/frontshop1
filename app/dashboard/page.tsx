@@ -133,7 +133,7 @@ export default function DashboardPage() {
           <div className="w-7 h-7 bg-[#FFD000] flex items-center justify-center">
             <span className="text-black font-black text-xs">★</span>
           </div>
-          <span className="font-black text-base tracking-widest uppercase text-white">PackShop</span>
+          <span className="font-black text-base tracking-widest uppercase text-white">Brief Lab Studio</span>
         </Link>
         <div className="flex items-center gap-4">
           <span className="text-gray-400 text-xs font-bold uppercase tracking-widest hidden sm:block">
@@ -399,7 +399,7 @@ export default function DashboardPage() {
       <footer className="border-t-2 border-black mt-16 py-8 px-6">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <span className="text-xs font-black uppercase tracking-widest text-gray-500">
-            © {new Date().getFullYear()} PackShop
+            © {new Date().getFullYear()} Brief Lab Studio
           </span>
           <div className="flex gap-6">
             <Link href="/#packs" className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors">Packs</Link>

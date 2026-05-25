@@ -29,7 +29,7 @@ export default function Navbar({ currency, onCurrencyChange }: NavbarProps) {
           <div className="w-8 h-8 bg-[#FFD000] border-2 border-black flex items-center justify-center">
             <span className="text-black font-black text-xs">★</span>
           </div>
-          <span className="font-black text-lg tracking-widest uppercase">PackShop</span>
+          <span className="font-black text-lg tracking-widest uppercase">Brief Lab Studio</span>
         </Link>
 
         {/* ── Center nav ── */}

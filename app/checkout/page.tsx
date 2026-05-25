@@ -167,7 +167,7 @@ function CheckoutContent() {
           <div className="w-7 h-7 bg-[#FFD000] flex items-center justify-center">
             <span className="text-black font-black text-xs">★</span>
           </div>
-          <span className="font-black text-base tracking-widest uppercase text-white">PackShop</span>
+          <span className="font-black text-base tracking-widest uppercase text-white">Brief Lab Studio</span>
         </Link>
         <span className="text-[#FFD000] text-xs font-black uppercase tracking-widest">Secure Checkout</span>
       </div>

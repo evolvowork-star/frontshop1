@@ -33,7 +33,7 @@ export async function sendOrderInvoiceEmail(
   const bannerFiles = imageAttachments.filter((a) => a.filename.startsWith("banner"))
 
   await transporter.sendMail({
-    from:    `"PackShop" <${process.env.SMTP_FROM_EMAIL}>`,
+    from:    `"Brief Lab Studio" <${process.env.SMTP_FROM_EMAIL}>`,
     to:      data.userEmail,
     subject: `Your designs are ready — Invoice ${data.invoiceNo}`,
     html:    buildUserHtml(data, logoFiles.length, bannerFiles.length),
@@ -63,7 +63,7 @@ export async function sendAdminNewOrderEmail(
   const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER!
 
   await transporter.sendMail({
-    from:    `"PackShop" <${process.env.SMTP_FROM_EMAIL}>`,
+    from:    `"Brief Lab Studio" <${process.env.SMTP_FROM_EMAIL}>`,
     to:      adminEmail,
     subject: `[New Order] ${data.invoiceNo} — ${data.packageName} (${data.currencySymbol}${data.amount})`,
     html: `
@@ -136,7 +136,7 @@ function buildUserHtml(
 
   <!-- Header -->
   <div style="background:#111;padding:28px 40px">
-    <div style="color:#FFD000;font-size:22px;font-weight:900;letter-spacing:4px">★ PACKSHOP</div>
+    <div style="color:#FFD000;font-size:22px;font-weight:900;letter-spacing:4px">★ Brief Lab Studio</div>
     <div style="color:#aaa;font-size:10px;margin-top:4px;letter-spacing:2px;text-transform:uppercase">Official Invoice &amp; Design Delivery</div>
   </div>
 
@@ -251,7 +251,7 @@ function buildUserHtml(
   <div style="padding:16px 40px;border-top:1px solid #eee">
     <table style="width:100%;border-collapse:collapse">
       <tr>
-        <td style="font-size:10px;color:#999">© ${new Date().getFullYear()} PackShop. All rights reserved.</td>
+        <td style="font-size:10px;color:#999">© ${new Date().getFullYear()} Brief Lab Studio. All rights reserved.</td>
         <td style="font-size:10px;color:#999;text-align:right">Do not reply to this email.</td>
       </tr>
     </table>
