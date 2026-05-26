@@ -10,9 +10,9 @@ import AdminNavbar from "@/src/components/adminNavbar"
 
 type AIConfig = {
   id: string
-  provider: string          // "openai"
-  model: string             // "gpt-4.5-preview"
-  apiKeyMasked: string      // "sk-...xxxx"
+  provider: string
+  model: string
+  apiKeyMasked: string
   orgId: string | null
   isActive: boolean
   connectedAt: string
@@ -109,15 +109,16 @@ type Package = {
   _count: { subscription: number }
   createdAt: string
 }
+
 type AnalyticsData = {
-  sessions: number;
-  users: number;
-  bounceRate: string;
-  avgDuration: number;
-  pageViews: number;
-  topPages: { path: string; views: number; users: number }[];
-  devices: { device: string; sessions: number }[];
-};
+  sessions: number
+  users: number
+  bounceRate: string
+  avgDuration: number
+  pageViews: number
+  topPages: { path: string; views: number; users: number }[]
+  devices: { device: string; sessions: number }[]
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const fmtEur = (n: number) =>
@@ -159,16 +160,13 @@ export default function AdminPanel() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [tab, setTab] = useState("overview")
+  const [sidebarOpen, setSidebarOpen] = useState(false)   // ← NEW: mobile sidebar
   const [stats, setStats] = useState<Stats | null>(null)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
 
   const [aiConfig, setAiConfig] = useState<AIConfig | null>(null)
   const [aiConfigLoading, setAiConfigLoading] = useState(false)
-  const [aiForm, setAiForm] = useState({
-    apiKey: "",
-    orgId: "",
-    model: "gpt-4.5-preview",
-  })
+  const [aiForm, setAiForm] = useState({ apiKey: "", orgId: "", model: "gpt-4.5-preview" })
   const [aiConnecting, setAiConnecting] = useState(false)
   const [aiDisconnecting, setAiDisconnecting] = useState(false)
 
@@ -189,9 +187,21 @@ export default function AdminPanel() {
   const [invoiceModal, setInvoiceModal] = useState<{ open: boolean; sub: Subscription | null }>({ open: false, sub: null })
   const [statusModal, setStatusModal] = useState<{ open: boolean; sub: Subscription | null; newStatus: string }>({ open: false, sub: null, newStatus: "" })
   const [statusLoading, setStatusLoading] = useState(false)
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
 
+  // Lock body scroll when mobile sidebar is open
+  useEffect(() => {
+    document.body.style.overflow = sidebarOpen ? "hidden" : ""
+    return () => { document.body.style.overflow = "" }
+  }, [sidebarOpen])
+
+  // Close sidebar on desktop resize
+  useEffect(() => {
+    const handleResize = () => { if (window.innerWidth >= 768) setSidebarOpen(false) }
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
 
   // ─── Auth ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -212,13 +222,15 @@ export default function AdminPanel() {
     const r = await fetch("/api/admin/stats")
     setStats(await r.json())
   }, [])
+
   const fetchAnalytics = useCallback(async () => {
-    setAnalyticsLoading(true);
-    const r = await fetch("/api/admin/analytics");
-    const d = await r.json();
-    setAnalytics(d);
-    setAnalyticsLoading(false);
-  }, []); 
+    setAnalyticsLoading(true)
+    const r = await fetch("/api/admin/analytics")
+    const d = await r.json()
+    setAnalytics(d)
+    setAnalyticsLoading(false)
+  }, [])
+
   const fetchSubscriptions = useCallback(async () => {
     setLoading(true)
     const p = new URLSearchParams({ search: subSearch, status: subStatus, page: String(page) })
@@ -287,7 +299,6 @@ export default function AdminPanel() {
     }
   }
 
-
   const fetchPackages = useCallback(async () => {
     setLoading(true)
     const r = await fetch("/api/admin/packages")
@@ -305,7 +316,7 @@ export default function AdminPanel() {
     if (tab === "packages") fetchPackages()
     if (tab === "ai-connect") fetchAIConfig()
     if (tab === "ai-usage") fetchAIUsage()
-    if (tab === "analytics") fetchAnalytics();
+    if (tab === "analytics") fetchAnalytics()
   }, [tab])
 
   useEffect(() => {
@@ -351,84 +362,127 @@ export default function AdminPanel() {
       </div>
     )
   }
-  
+
   const navItems = [
-    { key: "overview", label: "OVERVIEW", badge: null },
-    { key: "subscriptions", label: "Orders", badge: stats?.pendingSubscriptions ?? null },
-    { key: "users", label: "USERS", badge: null },
-    { key: "packages", label: "PACKAGES", badge: null },
-    { key: "ai-connect", label: "AI MODEL", badge: aiConfig?.isActive ? "●" : null },
-    { key: "ai-usage", label: "AI USAGE", badge: null },
-    { key: "analytics", label: "ANALYTICS", badge: null },
+    { key: "overview",     label: "OVERVIEW",   badge: null },
+    { key: "subscriptions",label: "Orders",     badge: stats?.pendingSubscriptions ?? null },
+    { key: "users",        label: "USERS",      badge: null },
+    { key: "packages",     label: "PACKAGES",   badge: null },
+    { key: "ai-connect",   label: "AI MODEL",   badge: aiConfig?.isActive ? "●" : null },
+    { key: "ai-usage",     label: "AI USAGE",   badge: null },
+    { key: "analytics",    label: "ANALYTICS",  badge: null },
   ]
 
-  function AnalyticsTab({ analytics, loading }: { analytics: AnalyticsData | null; loading: boolean }) {
-    const fmtDur = (s: number) => `${Math.floor(s / 60)}m ${s % 60}s`;
+  // ── Helper: switch tab and close mobile sidebar
+  function switchTab(key: string) {
+    setTab(key)
+    setSidebarOpen(false)
+  }
 
+  // ─── Sidebar Nav Content (shared between desktop & mobile drawer) ──────────
+  function SidebarContent() {
+    return (
+      <>
+        <nav className="flex-1 py-4">
+          {navItems.map(item => (
+            <button
+              key={item.key}
+              onClick={() => switchTab(item.key)}
+              className={`w-full text-left flex items-center justify-between px-6 py-2.5 text-[11px] font-mono font-semibold tracking-widest uppercase transition-all border-l-2 ${
+                tab === item.key
+                  ? "text-amber-400 bg-zinc-800 border-amber-400"
+                  : "text-zinc-500 bg-transparent border-transparent hover:text-zinc-300"
+              }`}
+            >
+              <span>{item.label}</span>
+              {item.badge ? (
+                <span className="bg-amber-400 text-zinc-900 rounded-full text-[10px] px-1.5 py-0.5 font-bold leading-none">
+                  {item.badge}
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </nav>
+        <div className="px-6 py-5 border-t border-zinc-800">
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="text-[10px] font-mono text-zinc-600 tracking-widest uppercase hover:text-red-400 transition-colors"
+          >
+            Sign Out →
+          </button>
+        </div>
+      </>
+    )
+  }
+
+  // ─── Analytics Tab ────────────────────────────────────────────────────────
+  function AnalyticsTab({ analytics, loading }: { analytics: AnalyticsData | null; loading: boolean }) {
     if (loading) return (
       <div>
-        <h1 className="font-['Anton',sans-serif] text-[40px] tracking-[0.04em] text-zinc-900">ANALYTICS</h1>
+        <h1 className="font-['Anton',sans-serif] text-[28px] md:text-[40px] tracking-[0.04em] text-zinc-900">ANALYTICS</h1>
         <p className="text-[12px] font-mono text-gray-300 mt-2">Loading data...</p>
       </div>
-    );
+    )
 
     return (
       <div>
-        <div className="mb-8">
-          <h1 className="font-['Anton',sans-serif] text-[40px] tracking-[0.04em] text-zinc-900 leading-none">ANALYTICS</h1>
+        <div className="mb-6 md:mb-8">
+          <h1 className="font-['Anton',sans-serif] text-[28px] md:text-[40px] tracking-[0.04em] text-zinc-900 leading-none">ANALYTICS</h1>
           <p className="text-[13px] font-mono text-gray-400 mt-1">Last 30 days — via Google Analytics 4</p>
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
           {[
-            { label: "Sessions", value: analytics?.sessions.toLocaleString() ?? "—", dark: true },
-            { label: "Users", value: analytics?.users.toLocaleString() ?? "—", dark: false },
-            { label: "Page Views", value: analytics?.pageViews.toLocaleString() ?? "—", dark: false },
-            { label: "Bounce Rate", value: analytics ? `${analytics.bounceRate}%` : "—", dark: false },
+            { label: "Sessions",    value: analytics?.sessions.toLocaleString() ?? "—", dark: true },
+            { label: "Users",       value: analytics?.users.toLocaleString() ?? "—",    dark: false },
+            { label: "Page Views",  value: analytics?.pageViews.toLocaleString() ?? "—",dark: false },
+            { label: "Bounce Rate", value: analytics ? `${analytics.bounceRate}%` : "—",dark: false },
           ].map(s => (
-            <div key={s.label} className={`rounded-xl p-5 border ${s.dark ? "bg-zinc-900 border-zinc-900" : "bg-white border-gray-200"}`}>
+            <div key={s.label} className={`rounded-xl p-4 md:p-5 border ${s.dark ? "bg-zinc-900 border-zinc-900" : "bg-white border-gray-200"}`}>
               <p className={`text-[10px] font-mono tracking-[0.12em] uppercase mb-2 ${s.dark ? "text-amber-400" : "text-gray-400"}`}>{s.label}</p>
-              <p className={`font-['Anton',sans-serif] text-[30px] leading-none ${s.dark ? "text-amber-400" : "text-zinc-900"}`}>{s.value}</p>
+              <p className={`font-['Anton',sans-serif] text-[24px] md:text-[30px] leading-none ${s.dark ? "text-amber-400" : "text-zinc-900"}`}>{s.value}</p>
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Top Pages */}
           <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
-            <div className="px-6 py-4 border-b border-gray-100">
+            <div className="px-4 md:px-6 py-4 border-b border-gray-100">
               <span className="font-['Anton',sans-serif] text-base tracking-[0.05em] text-zinc-900">TOP PAGES</span>
             </div>
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50">
-                  {["Page", "Views", "Users"].map(h => (
-                    <th key={h} className="text-left px-5 py-3 text-[10px] font-mono text-gray-400 uppercase tracking-widest border-b border-gray-100">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {(analytics?.topPages ?? []).map((p, i) => (
-                  <tr key={i} className="hover:bg-amber-50 transition-colors">
-                    <td className="px-5 py-3 border-b border-gray-50 font-mono text-[12px] text-gray-600 truncate max-w-[150px]">{p.path}</td>
-                    <td className="px-5 py-3 border-b border-gray-50 font-['Anton',sans-serif] text-[18px] text-zinc-900">{p.views.toLocaleString()}</td>
-                    <td className="px-5 py-3 border-b border-gray-50 font-mono text-[12px] text-gray-500">{p.users.toLocaleString()}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[320px]">
+                <thead>
+                  <tr className="bg-gray-50">
+                    {["Page", "Views", "Users"].map(h => (
+                      <th key={h} className={TABLE_TH}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {(analytics?.topPages ?? []).map((p, i) => (
+                    <tr key={i} className="hover:bg-amber-50 transition-colors">
+                      <td className="px-5 py-3 border-b border-gray-50 font-mono text-[12px] text-gray-600 truncate max-w-[120px] md:max-w-[150px]">{p.path}</td>
+                      <td className="px-5 py-3 border-b border-gray-50 font-['Anton',sans-serif] text-[18px] text-zinc-900">{p.views.toLocaleString()}</td>
+                      <td className="px-5 py-3 border-b border-gray-50 font-mono text-[12px] text-gray-500">{p.users.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Devices */}
           <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
-            <div className="px-6 py-4 border-b border-gray-100">
+            <div className="px-4 md:px-6 py-4 border-b border-gray-100">
               <span className="font-['Anton',sans-serif] text-base tracking-[0.05em] text-zinc-900">DEVICES</span>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-4 md:p-6 space-y-4">
               {(analytics?.devices ?? []).map((d, i) => {
-                const total = analytics?.sessions ?? 1;
-                const pct = Math.round((d.sessions / total) * 100);
+                const total = analytics?.sessions ?? 1
+                const pct = Math.round((d.sessions / total) * 100)
                 return (
                   <div key={i}>
                     <div className="flex justify-between mb-1">
@@ -436,30 +490,22 @@ export default function AdminPanel() {
                       <span className="text-[11px] font-mono text-gray-400">{pct}%</span>
                     </div>
                     <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-amber-400 transition-all"
-                        style={{ width: `${pct}%` }}
-                      />
+                      <div className="h-full rounded-full bg-amber-400 transition-all" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
-                );
+                )
               })}
             </div>
           </div>
         </div>
       </div>
-    );
+    )
   }
 
+  // ─── AI Connect Tab ───────────────────────────────────────────────────────
   function AIConnectTab({
-    aiConfig,
-    aiConfigLoading,
-    aiForm,
-    setAiForm,
-    aiConnecting,
-    aiDisconnecting,
-    connectAI,
-    disconnectAI,
+    aiConfig, aiConfigLoading, aiForm, setAiForm,
+    aiConnecting, aiDisconnecting, connectAI, disconnectAI,
   }: {
     aiConfig: AIConfig | null
     aiConfigLoading: boolean
@@ -471,50 +517,39 @@ export default function AdminPanel() {
     disconnectAI: () => void
   }) {
     const SUPPORTED_MODELS = [
-      { value: "gpt-5.5", label: "GPT-5.5" },
-      { value: "gpt-4o", label: "GPT-4o" },
-      { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
-      { value: "dall-e-3", label: "DALL·E 3  (image generation)" },
+      { value: "gpt-5.5",      label: "GPT-5.5" },
+      { value: "gpt-4o",       label: "GPT-4o" },
+      { value: "gpt-4-turbo",  label: "GPT-4 Turbo" },
+      { value: "dall-e-3",     label: "DALL·E 3  (image generation)" },
     ]
 
     return (
       <div>
-        {/* ── Header ── */}
-        <div className="mb-8">
-          <h1 className="font-['Anton',sans-serif] text-[40px] tracking-[0.04em] text-zinc-900 leading-none">
-            AI MODEL
-          </h1>
-          <p className="text-[13px] font-mono text-gray-400 mt-1">
-            Connect OpenAI to enable per-package AI generation for users
-          </p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="font-['Anton',sans-serif] text-[28px] md:text-[40px] tracking-[0.04em] text-zinc-900 leading-none">AI MODEL</h1>
+          <p className="text-[13px] font-mono text-gray-400 mt-1">Connect OpenAI to enable per-package AI generation for users</p>
         </div>
 
         {aiConfigLoading ? (
           <p className="text-[12px] font-mono text-gray-300">Loading configuration...</p>
         ) : aiConfig?.isActive ? (
-          /* ── CONNECTED STATE ── */
           <div className="max-w-xl space-y-4">
-
-            {/* Status card */}
             <div className="rounded-xl border-2 border-emerald-500 bg-white overflow-hidden">
-              <div className="px-6 py-4 bg-emerald-500 flex items-center justify-between">
+              <div className="px-4 md:px-6 py-4 bg-emerald-500 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
-                  <span className="text-[11px] font-mono font-bold text-white tracking-[0.15em] uppercase">
-                    Model Connected
-                  </span>
+                  <span className="text-[11px] font-mono font-bold text-white tracking-[0.15em] uppercase">Model Connected</span>
                 </div>
                 <span className="text-[10px] font-mono text-emerald-100">
                   Since {new Date(aiConfig.connectedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
                 </span>
               </div>
-
-              <div className="px-6 py-5 grid grid-cols-2 gap-4">
+              <div className="px-4 md:px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
-                  { label: "Provider", value: "OpenAI" },
-                  { label: "Model", value: aiConfig.model },
-                  { label: "API Key", value: aiConfig.apiKeyMasked },
-                  { label: "Org ID", value: aiConfig.orgId ?? "—" },
+                  { label: "Provider",     value: "OpenAI" },
+                  { label: "Model",        value: aiConfig.model },
+                  { label: "API Key",      value: aiConfig.apiKeyMasked },
+                  { label: "Org ID",       value: aiConfig.orgId ?? "—" },
                   { label: "Connected By", value: aiConfig.connectedBy },
                 ].map(row => (
                   <div key={row.label}>
@@ -525,33 +560,23 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            {/* Disconnect */}
-            <div className="rounded-xl border border-red-200 bg-red-50 px-6 py-4 flex items-center justify-between">
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 md:px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-0 justify-between">
               <div>
                 <p className="text-[12px] font-semibold text-red-800">Disconnect Model</p>
-                <p className="text-[11px] font-mono text-red-400 mt-0.5">
-                  Users will lose AI generation access immediately
-                </p>
+                <p className="text-[11px] font-mono text-red-400 mt-0.5">Users will lose AI generation access immediately</p>
               </div>
               <button
                 onClick={disconnectAI}
                 disabled={aiDisconnecting}
-                className="px-4 py-2 rounded-lg bg-red-600 text-white text-[11px] font-mono font-bold tracking-wider hover:bg-red-700 transition-colors disabled:opacity-50"
+                className="px-4 py-2 rounded-lg bg-red-600 text-white text-[11px] font-mono font-bold tracking-wider hover:bg-red-700 transition-colors disabled:opacity-50 self-start sm:self-auto"
               >
                 {aiDisconnecting ? "Disconnecting..." : "DISCONNECT →"}
               </button>
             </div>
-
-            {/* Per-Package Access Info */}
-
           </div>
-
         ) : (
-          /* ── CONNECT FORM ── */
           <div className="max-w-xl space-y-4">
-
-            {/* Info Banner */}
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 flex gap-3">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 md:px-5 py-4 flex gap-3">
               <span className="text-amber-400 text-lg flex-shrink-0">⚡</span>
               <div>
                 <p className="text-[12px] font-semibold text-amber-900">No AI model connected</p>
@@ -561,17 +586,11 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            {/* Form Card */}
             <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
-                <p className="font-['Anton',sans-serif] text-[16px] tracking-[0.05em] text-zinc-900">
-                  CONNECT OPENAI
-                </p>
+              <div className="px-4 md:px-6 py-4 border-b border-gray-100 bg-gray-50">
+                <p className="font-['Anton',sans-serif] text-[16px] tracking-[0.05em] text-zinc-900">CONNECT OPENAI</p>
               </div>
-
-              <div className="px-6 py-5 space-y-4">
-
-                {/* API Key */}
+              <div className="px-4 md:px-6 py-5 space-y-4">
                 <div>
                   <label className="block text-[10px] font-mono text-gray-400 tracking-[0.12em] uppercase mb-2">
                     OpenAI API Key <span className="text-red-400">*</span>
@@ -583,16 +602,10 @@ export default function AdminPanel() {
                     placeholder="sk-proj-..."
                     className="w-full rounded-lg px-3 py-2.5 text-sm font-mono border border-gray-200 bg-white outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition"
                   />
-                  <p className="mt-1 text-[10px] font-mono text-gray-300">
-                    Get your key from platform.openai.com/api-keys — stored encrypted
-                  </p>
+                  <p className="mt-1 text-[10px] font-mono text-gray-300">Get your key from platform.openai.com/api-keys — stored encrypted</p>
                 </div>
-
-                {/* Model */}
                 <div>
-                  <label className="block text-[10px] font-mono text-gray-400 tracking-[0.12em] uppercase mb-2">
-                    Model
-                  </label>
+                  <label className="block text-[10px] font-mono text-gray-400 tracking-[0.12em] uppercase mb-2">Model</label>
                   <select
                     value={aiForm.model}
                     onChange={e => setAiForm({ ...aiForm, model: e.target.value })}
@@ -603,8 +616,6 @@ export default function AdminPanel() {
                     ))}
                   </select>
                 </div>
-
-                {/* Org ID (optional) */}
                 <div>
                   <label className="block text-[10px] font-mono text-gray-400 tracking-[0.12em] uppercase mb-2">
                     Organization ID <span className="text-gray-300">(optional)</span>
@@ -618,11 +629,8 @@ export default function AdminPanel() {
                   />
                 </div>
               </div>
-
-              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
-                <p className="text-[10px] font-mono text-gray-300">
-                  Key is verified against OpenAI before saving
-                </p>
+              <div className="px-4 md:px-6 py-4 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <p className="text-[10px] font-mono text-gray-300">Key is verified against OpenAI before saving</p>
                 <button
                   onClick={connectAI}
                   disabled={aiConnecting || !aiForm.apiKey.trim()}
@@ -638,45 +646,23 @@ export default function AdminPanel() {
     )
   }
 
-
-  // ──────────────────────────────────────────────────────────────────────────────
-  // AI USAGE TAB
-  // ──────────────────────────────────────────────────────────────────────────────
-
-  function AIUsageTab({
-    aiUsage,
-    aiUsageLoading,
-  }: {
-    aiUsage: AIUsageOverview | null
-    aiUsageLoading: boolean
-  }) {
+  // ─── AI Usage Tab ─────────────────────────────────────────────────────────
+  function AIUsageTab({ aiUsage, aiUsageLoading }: { aiUsage: AIUsageOverview | null; aiUsageLoading: boolean }) {
     const fmtCost = (n: number) => `$${n.toFixed(4)}`
-    const fmtNum = (n: number) => n.toLocaleString()
+    const fmtNum  = (n: number) => n.toLocaleString()
 
-    if (aiUsageLoading) {
-      return (
-        <div>
-          <h1 className="font-['Anton',sans-serif] text-[40px] tracking-[0.04em] text-zinc-900 leading-none mb-2">
-            AI USAGE
-          </h1>
-          <p className="text-[12px] font-mono text-gray-300">Loading usage data...</p>
-        </div>
-      )
-    }
-
-    const TABLE_TH = "text-left px-5 py-3 text-[10px] font-mono text-gray-400 uppercase tracking-widest border-b border-gray-100"
-    const TABLE_TD = "px-5 py-4 border-b border-gray-50"
+    if (aiUsageLoading) return (
+      <div>
+        <h1 className="font-['Anton',sans-serif] text-[28px] md:text-[40px] tracking-[0.04em] text-zinc-900 leading-none mb-2">AI USAGE</h1>
+        <p className="text-[12px] font-mono text-gray-300">Loading usage data...</p>
+      </div>
+    )
 
     return (
       <div>
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="font-['Anton',sans-serif] text-[40px] tracking-[0.04em] text-zinc-900 leading-none">
-            AI USAGE
-          </h1>
-          <p className="text-[13px] font-mono text-gray-400 mt-1">
-            Token consumption and cost breakdown per package
-          </p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="font-['Anton',sans-serif] text-[28px] md:text-[40px] tracking-[0.04em] text-zinc-900 leading-none">AI USAGE</h1>
+          <p className="text-[13px] font-mono text-gray-400 mt-1">Token consumption and cost breakdown per package</p>
         </div>
 
         {!aiUsage ? (
@@ -686,226 +672,201 @@ export default function AdminPanel() {
           </div>
         ) : (
           <div className="space-y-6">
-
-            {/* ── Top stat cards ── */}
-            <div className="grid grid-cols-3 gap-4">
+            {/* Top stat cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
               {[
-                { label: "Total Requests", value: fmtNum(aiUsage.totalRequests), dark: true },
-                { label: "Total Tokens", value: fmtNum(aiUsage.totalTokens), dark: false },
-                { label: "Estimated Cost", value: `$${aiUsage.totalCostUsd.toFixed(2)}`, dark: false },
+                { label: "Total Requests",  value: fmtNum(aiUsage.totalRequests),           dark: true },
+                { label: "Total Tokens",    value: fmtNum(aiUsage.totalTokens),              dark: false },
+                { label: "Estimated Cost",  value: `$${aiUsage.totalCostUsd.toFixed(2)}`,   dark: false },
               ].map(s => (
-                <div
-                  key={s.label}
-                  className={`rounded-xl p-5 border ${s.dark ? "bg-zinc-900 border-zinc-900" : "bg-white border-gray-200"}`}
-                >
-                  <p className={`text-[10px] font-mono tracking-[0.12em] uppercase mb-2 ${s.dark ? "text-amber-400" : "text-gray-400"}`}>
-                    {s.label}
-                  </p>
-                  <p className={`font-['Anton',sans-serif] text-[30px] leading-none ${s.dark ? "text-amber-400" : "text-zinc-900"}`}>
-                    {s.value}
-                  </p>
+                <div key={s.label} className={`rounded-xl p-4 md:p-5 border ${s.dark ? "bg-zinc-900 border-zinc-900" : "bg-white border-gray-200"}`}>
+                  <p className={`text-[10px] font-mono tracking-[0.12em] uppercase mb-2 ${s.dark ? "text-amber-400" : "text-gray-400"}`}>{s.label}</p>
+                  <p className={`font-['Anton',sans-serif] text-[24px] md:text-[30px] leading-none ${s.dark ? "text-amber-400" : "text-zinc-900"}`}>{s.value}</p>
                 </div>
               ))}
             </div>
 
-            {/* ── Per-Package Breakdown ── */}
+            {/* Per-Package Breakdown */}
             <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
-              <div className="px-6 py-4 border-b border-gray-100">
-                <span className="font-['Anton',sans-serif] text-base tracking-[0.05em] text-zinc-900">
-                  USAGE BY PACKAGE
-                </span>
+              <div className="px-4 md:px-6 py-4 border-b border-gray-100">
+                <span className="font-['Anton',sans-serif] text-base tracking-[0.05em] text-zinc-900">USAGE BY PACKAGE</span>
               </div>
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50">
-                    {["Package", "Requests", "Tokens In", "Tokens Out", "Est. Cost", "Last Used"].map(h => (
-                      <th key={h} className={TABLE_TH}>{h}</th>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[600px]">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      {["Package", "Requests", "Tokens In", "Tokens Out", "Est. Cost", "Last Used"].map(h => (
+                        <th key={h} className={TABLE_TH}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {aiUsage.byPackage.length === 0 ? (
+                      <tr><td colSpan={6} className="text-center py-10 text-[13px] text-gray-300">No package usage recorded.</td></tr>
+                    ) : aiUsage.byPackage.map(pkg => (
+                      <tr key={pkg.packageSlug} className="hover:bg-amber-50 transition-colors">
+                        <td className={TABLE_TD}>
+                          <p className="font-semibold text-[13px] text-zinc-900">{pkg.packageName}</p>
+                          <p className="font-mono text-[10px] text-gray-400">{pkg.packageSlug}</p>
+                        </td>
+                        <td className={`${TABLE_TD} font-['Anton',sans-serif] text-[20px] text-zinc-900`}>{fmtNum(pkg.totalRequests)}</td>
+                        <td className={`${TABLE_TD} font-mono text-[12px] text-gray-600`}>{fmtNum(pkg.totalTokensIn)}</td>
+                        <td className={`${TABLE_TD} font-mono text-[12px] text-gray-600`}>{fmtNum(pkg.totalTokensOut)}</td>
+                        <td className={`${TABLE_TD} font-mono text-[12px] font-bold text-zinc-900`}>{fmtCost(pkg.estimatedCostUsd)}</td>
+                        <td className={`${TABLE_TD} font-mono text-[11px] text-gray-400`}>
+                          {pkg.lastUsedAt ? new Date(pkg.lastUsedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                        </td>
+                      </tr>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {aiUsage.byPackage.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="text-center py-10 text-[13px] text-gray-300">
-                        No package usage recorded.
-                      </td>
-                    </tr>
-                  ) : aiUsage.byPackage.map(pkg => (
-                    <tr key={pkg.packageSlug} className="hover:bg-amber-50 transition-colors">
-                      <td className={TABLE_TD}>
-                        <p className="font-semibold text-[13px] text-zinc-900">{pkg.packageName}</p>
-                        <p className="font-mono text-[10px] text-gray-400">{pkg.packageSlug}</p>
-                      </td>
-                      <td className={`${TABLE_TD} font-['Anton',sans-serif] text-[20px] text-zinc-900`}>
-                        {fmtNum(pkg.totalRequests)}
-                      </td>
-                      <td className={`${TABLE_TD} font-mono text-[12px] text-gray-600`}>
-                        {fmtNum(pkg.totalTokensIn)}
-                      </td>
-                      <td className={`${TABLE_TD} font-mono text-[12px] text-gray-600`}>
-                        {fmtNum(pkg.totalTokensOut)}
-                      </td>
-                      <td className={`${TABLE_TD} font-mono text-[12px] font-bold text-zinc-900`}>
-                        {fmtCost(pkg.estimatedCostUsd)}
-                      </td>
-                      <td className={`${TABLE_TD} font-mono text-[11px] text-gray-400`}>
-                        {pkg.lastUsedAt
-                          ? new Date(pkg.lastUsedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-                          : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            {/* ── Recent Logs ── */}
+            {/* Recent Logs */}
             <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
-              <div className="px-6 py-4 border-b border-gray-100">
-                <span className="font-['Anton',sans-serif] text-base tracking-[0.05em] text-zinc-900">
-                  RECENT REQUESTS
-                </span>
+              <div className="px-4 md:px-6 py-4 border-b border-gray-100">
+                <span className="font-['Anton',sans-serif] text-base tracking-[0.05em] text-zinc-900">RECENT REQUESTS</span>
               </div>
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50">
-                    {["User", "Package", "Tokens In", "Tokens Out", "Cost", "Time"].map(h => (
-                      <th key={h} className={TABLE_TH}>{h}</th>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[500px]">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      {["User", "Package", "Tokens In", "Tokens Out", "Cost", "Time"].map(h => (
+                        <th key={h} className={TABLE_TH}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {aiUsage.recentLogs.length === 0 ? (
+                      <tr><td colSpan={6} className="text-center py-10 text-[13px] text-gray-300">No requests yet.</td></tr>
+                    ) : aiUsage.recentLogs.map(log => (
+                      <tr key={log.id} className="hover:bg-amber-50 transition-colors">
+                        <td className={`${TABLE_TD} font-mono text-[12px] text-gray-600`}>{log.userEmail}</td>
+                        <td className={`${TABLE_TD} text-[13px] font-semibold text-zinc-900`}>{log.packageName}</td>
+                        <td className={`${TABLE_TD} font-mono text-[12px] text-gray-500`}>{fmtNum(log.tokensIn)}</td>
+                        <td className={`${TABLE_TD} font-mono text-[12px] text-gray-500`}>{fmtNum(log.tokensOut)}</td>
+                        <td className={`${TABLE_TD} font-mono text-[11px] font-bold text-zinc-900`}>{fmtCost(log.costUsd)}</td>
+                        <td className={`${TABLE_TD} font-mono text-[11px] text-gray-400`}>
+                          {new Date(log.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                        </td>
+                      </tr>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {aiUsage.recentLogs.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="text-center py-10 text-[13px] text-gray-300">
-                        No requests yet.
-                      </td>
-                    </tr>
-                  ) : aiUsage.recentLogs.map(log => (
-                    <tr key={log.id} className="hover:bg-amber-50 transition-colors">
-                      <td className={`${TABLE_TD} font-mono text-[12px] text-gray-600`}>{log.userEmail}</td>
-                      <td className={`${TABLE_TD} text-[13px] font-semibold text-zinc-900`}>{log.packageName}</td>
-                      <td className={`${TABLE_TD} font-mono text-[12px] text-gray-500`}>{fmtNum(log.tokensIn)}</td>
-                      <td className={`${TABLE_TD} font-mono text-[12px] text-gray-500`}>{fmtNum(log.tokensOut)}</td>
-                      <td className={`${TABLE_TD} font-mono text-[11px] font-bold text-zinc-900`}>{fmtCost(log.costUsd)}</td>
-                      <td className={`${TABLE_TD} font-mono text-[11px] text-gray-400`}>
-                        {new Date(log.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              </div>
             </div>
-
           </div>
         )}
       </div>
     )
   }
 
+  // ──────────────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col min-h-screen bg-stone-50 font-sans">
       <AdminNavbar />
+
+      {/* ── Mobile Top Bar ─────────────────────────────────────────────────── */}
+      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-zinc-900 border-b border-zinc-800">
+        {/* Active tab label */}
+        <span className="text-[11px] font-mono font-bold tracking-widest uppercase text-amber-400">
+          {navItems.find(n => n.key === tab)?.label ?? "ADMIN"}
+        </span>
+        {/* Hamburger */}
+        <button
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Open sidebar"
+          className="flex flex-col justify-center items-center w-9 h-9 gap-1.5"
+        >
+          <span className="block w-5 h-0.5 bg-amber-400" />
+          <span className="block w-5 h-0.5 bg-amber-400" />
+          <span className="block w-5 h-0.5 bg-amber-400" />
+        </button>
+      </div>
+
+      {/* ── Mobile Sidebar Overlay ─────────────────────────────────────────── */}
+      {sidebarOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* ── Mobile Sidebar Drawer ──────────────────────────────────────────── */}
+      <div className={`md:hidden fixed top-0 left-0 z-50 h-full w-64 bg-zinc-900 flex flex-col transform transition-transform duration-300 ease-in-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        {/* Drawer header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+          <span className="text-[11px] font-mono text-zinc-400 tracking-widest uppercase">Menu</span>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="text-zinc-400 hover:text-white transition-colors text-xl leading-none"
+            aria-label="Close sidebar"
+          >
+            ×
+          </button>
+        </div>
+        <SidebarContent />
+      </div>
+
       <div className="flex flex-1 overflow-hidden">
 
-        {/* ── Toast ───────────────────────────────────────────────────────────── */}
+        {/* ── Toast ─────────────────────────────────────────────────────────── */}
         {toast && (
-          <div className={`fixed top-5 right-5 z-[200] flex items-center gap-2 px-4 py-3 rounded-lg shadow-xl text-sm font-semibold text-white ${toast.ok ? "bg-zinc-900" : "bg-red-600"}`}>
+          <div className={`fixed top-5 right-5 z-[200] flex items-center gap-2 px-4 py-3 rounded-lg shadow-xl text-sm font-semibold text-white max-w-[calc(100vw-2.5rem)] ${toast.ok ? "bg-zinc-900" : "bg-red-600"}`}>
             {toast.ok ? "✓" : "✕"} {toast.msg}
           </div>
         )}
 
-        {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
-        <aside className="flex flex-col min-h-screen flex-shrink-0 w-56 bg-zinc-900 border-r border-zinc-800">
-          {/* Logo */}
-
-
-          {/* Nav */}
-          <nav className="flex-1 py-4">
-            {navItems.map(item => (
-              <button
-                key={item.key}
-                onClick={() => setTab(item.key)}
-                className={`w-full text-left flex items-center justify-between px-6 py-2.5 text-[11px] font-mono font-semibold tracking-widest uppercase transition-all border-l-2 ${tab === item.key
-                    ? "text-amber-400 bg-zinc-800 border-amber-400"
-                    : "text-zinc-500 bg-transparent border-transparent hover:text-zinc-300"
-                  }`}
-              >
-                <span>{item.label}</span>
-                {item.badge ? (
-                  <span className="bg-amber-400 text-zinc-900 rounded-full text-[10px] px-1.5 py-0.5 font-bold leading-none">
-                    {item.badge}
-                  </span>
-                ) : null}
-              </button>
-            ))}
-          </nav>
-
-          <div className="px-6 py-5 border-t border-zinc-800">
-            <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              className="text-[10px] font-mono text-zinc-600 tracking-widest uppercase hover:text-red-400 transition-colors"
-            >
-              Sign Out →
-            </button>
-          </div>
+        {/* ── Desktop Sidebar ───────────────────────────────────────────────── */}
+        <aside className="hidden md:flex flex-col min-h-screen flex-shrink-0 w-56 bg-zinc-900 border-r border-zinc-800">
+          <SidebarContent />
         </aside>
 
-        {/* ── Main ────────────────────────────────────────────────────────────── */}
-        <main className="flex-1 overflow-auto px-10 py-9">
+        {/* ── Main Content ──────────────────────────────────────────────────── */}
+        <main className="flex-1 overflow-auto px-4 py-5 md:px-10 md:py-9">
 
-          {/* ════ OVERVIEW ══════════════════════════════════════════════════════ */}
+          {/* ════ OVERVIEW ════════════════════════════════════════════════════ */}
           {tab === "overview" && (
             <div>
-              <div className="mb-8">
-                <h1 className="font-['Anton',sans-serif] text-[40px] tracking-[0.04em] text-zinc-900 leading-none">
-                  OVERVIEW
-                </h1>
+              <div className="mb-6 md:mb-8">
+                <h1 className="font-['Anton',sans-serif] text-[28px] md:text-[40px] tracking-[0.04em] text-zinc-900 leading-none">OVERVIEW</h1>
                 <p className="text-[13px] font-mono text-gray-400 mt-1">
                   {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
                 </p>
               </div>
 
-              {/* Stat Cards — top row */}
-              <div className="grid grid-cols-4 gap-4 mb-4">
+              {/* Top stat cards — 2 cols on mobile, 4 on desktop */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4">
                 {[
-                  { label: "Total Revenue", value: stats ? fmtEur(stats.revenueEur) : "—", dark: true },
-                  { label: "Total Orders", value: stats?.totalSubscriptions?.toLocaleString() ?? "—", dark: false },
-                  { label: "Registered Users", value: stats?.totalUsers?.toLocaleString() ?? "—", dark: false },
-                  { label: "Revenue Today", value: stats ? fmtEur(stats.revenueToday) : "—", dark: false },
+                  { label: "Total Revenue",     value: stats ? fmtEur(stats.revenueEur) : "—",                     dark: true },
+                  { label: "Total Orders",      value: stats?.totalSubscriptions?.toLocaleString() ?? "—",         dark: false },
+                  { label: "Registered Users",  value: stats?.totalUsers?.toLocaleString() ?? "—",                 dark: false },
+                  { label: "Revenue Today",     value: stats ? fmtEur(stats.revenueToday) : "—",                   dark: false },
                 ].map(s => (
-                  <div
-                    key={s.label}
-                    className={`rounded-xl p-5 border ${s.dark ? "bg-zinc-900 border-zinc-900" : "bg-white border-gray-200"}`}
-                  >
-                    <p className={`text-[10px] font-mono tracking-[0.12em] uppercase mb-2 ${s.dark ? "text-amber-400" : "text-gray-400"}`}>
-                      {s.label}
-                    </p>
-                    <p className={`font-['Anton',sans-serif] text-[30px] leading-none ${s.dark ? "text-amber-400" : "text-zinc-900"}`}>
-                      {s.value}
-                    </p>
+                  <div key={s.label} className={`rounded-xl p-4 md:p-5 border ${s.dark ? "bg-zinc-900 border-zinc-900" : "bg-white border-gray-200"}`}>
+                    <p className={`text-[10px] font-mono tracking-[0.12em] uppercase mb-2 ${s.dark ? "text-amber-400" : "text-gray-400"}`}>{s.label}</p>
+                    <p className={`font-['Anton',sans-serif] text-[22px] md:text-[30px] leading-none ${s.dark ? "text-amber-400" : "text-zinc-900"}`}>{s.value}</p>
                   </div>
                 ))}
               </div>
 
-              {/* Status row */}
-              <div className="grid grid-cols-4 gap-4 mb-8">
+              {/* Status row — 2 cols on mobile, 4 on desktop */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
                 {[
-                  { label: "Pending Orders", value: stats?.pendingSubscriptions ?? "—", color: "text-amber-500" },
+                  { label: "Pending Orders",   value: stats?.pendingSubscriptions   ?? "—", color: "text-amber-500" },
                   { label: "Completed Orders", value: stats?.completedSubscriptions ?? "—", color: "text-emerald-600" },
                 ].map(s => (
-                  <div key={s.label} className="rounded-xl p-5 border bg-white border-gray-200">
+                  <div key={s.label} className="rounded-xl p-4 md:p-5 border bg-white border-gray-200">
                     <p className="text-[10px] font-mono tracking-[0.12em] uppercase text-gray-400 mb-2">{s.label}</p>
-                    <p className={`font-['Anton',sans-serif] text-[28px] leading-none ${s.color}`}>
-                      {String(s.value)}
-                    </p>
+                    <p className={`font-['Anton',sans-serif] text-[22px] md:text-[28px] leading-none ${s.color}`}>{String(s.value)}</p>
                   </div>
                 ))}
               </div>
 
-              {/* Recent Subscriptions */}
+              {/* Recent Orders table */}
               <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-100">
                   <span className="font-['Anton',sans-serif] text-base tracking-[0.05em] text-zinc-900">RECENT ORDERS</span>
                   <button
                     onClick={() => setTab("subscriptions")}
@@ -914,68 +875,58 @@ export default function AdminPanel() {
                     View All →
                   </button>
                 </div>
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      {["Invoice", "Customer", "Package", "Amount", "Status", "Date"].map(h => (
-                        <th key={h} className={TABLE_TH}>{h}</th>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[600px]">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        {["Invoice", "Customer", "Package", "Amount", "Status", "Date"].map(h => (
+                          <th key={h} className={TABLE_TH}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(stats?.recentSubscriptions ?? []).map(s => (
+                        <tr
+                          key={s.id}
+                          className="hover:bg-amber-50 transition-colors cursor-pointer"
+                          onClick={() => setInvoiceModal({ open: true, sub: s })}
+                        >
+                          <td className={`${TABLE_TD} font-mono text-xs font-bold text-zinc-900`}>{s.invoiceNo}</td>
+                          <td className={TABLE_TD}>
+                            <div className="font-semibold text-[13px] text-zinc-900">{s.user.name ?? "—"}</div>
+                            <div className="text-[11px] text-gray-400 font-mono">{s.user.email}</div>
+                          </td>
+                          <td className={`${TABLE_TD} text-[13px] text-gray-700 font-medium`}>{s.packageSnapshot?.name ?? s.package?.name}</td>
+                          <td className={`${TABLE_TD} font-mono text-[13px] font-bold text-zinc-900`}>{fmtAmt(s.amount, s.currency)}</td>
+                          <td className={TABLE_TD}><StatusBadge status={s.status} /></td>
+                          <td className={`${TABLE_TD} font-mono text-[11px] text-gray-400`}>{fmtDate(s.createdAt)}</td>
+                        </tr>
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(stats?.recentSubscriptions ?? []).map(s => (
-                      <tr
-                        key={s.id}
-                        className="hover:bg-amber-50 transition-colors cursor-pointer"
-                        onClick={() => setInvoiceModal({ open: true, sub: s })}
-                      >
-                        <td className={`${TABLE_TD} font-mono text-xs font-bold text-zinc-900`}>{s.invoiceNo}</td>
-                        <td className={TABLE_TD}>
-                          <div className="font-semibold text-[13px] text-zinc-900">{s.user.name ?? "—"}</div>
-                          <div className="text-[11px] text-gray-400 font-mono">{s.user.email}</div>
-                        </td>
-                        <td className={`${TABLE_TD} text-[13px] text-gray-700 font-medium`}>
-                          {s.packageSnapshot?.name ?? s.package?.name}
-                        </td>
-                        <td className={`${TABLE_TD} font-mono text-[13px] font-bold text-zinc-900`}>
-                          {fmtAmt(s.amount, s.currency)}
-                        </td>
-                        <td className={TABLE_TD}><StatusBadge status={s.status} /></td>
-                        <td className={`${TABLE_TD} font-mono text-[11px] text-gray-400`}>{fmtDate(s.createdAt)}</td>
-                      </tr>
-                    ))}
-                    {!stats?.recentSubscriptions?.length && (
-                      <tr>
-                        <td colSpan={6} className="text-center py-10 text-[13px] text-gray-300">
-                          No Orders found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                      {!stats?.recentSubscriptions?.length && (
+                        <tr><td colSpan={6} className="text-center py-10 text-[13px] text-gray-300">No Orders found.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
 
-          {/* ════ SUBSCRIPTIONS ═════════════════════════════════════════════════ */}
+          {/* ════ SUBSCRIPTIONS ═══════════════════════════════════════════════ */}
           {tab === "subscriptions" && (
             <div>
-              <div className="mb-6">
-                <h1 className="font-['Anton',sans-serif] text-[40px] tracking-[0.04em] text-zinc-900 leading-none">
-                  Orders
-                </h1>
-                <p className="text-[13px] font-mono text-gray-400 mt-1">
-                  All purchases — invoices, packages, and statuses
-                </p>
+              <div className="mb-5 md:mb-6">
+                <h1 className="font-['Anton',sans-serif] text-[28px] md:text-[40px] tracking-[0.04em] text-zinc-900 leading-none">Orders</h1>
+                <p className="text-[13px] font-mono text-gray-400 mt-1">All purchases — invoices, packages, and statuses</p>
               </div>
 
               {/* Filters */}
-              <div className="flex gap-3 mb-5 flex-wrap">
+              <div className="flex flex-col sm:flex-row gap-3 mb-5">
                 <input
                   value={subSearch}
                   onChange={e => setSubSearch(e.target.value)}
                   placeholder="Search by invoice no. or email..."
-                  className="flex-1 min-w-[220px] rounded-lg px-3 py-2 text-sm border border-gray-200 bg-white outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition"
+                  className="flex-1 rounded-lg px-3 py-2 text-sm border border-gray-200 bg-white outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition"
                 />
                 <select
                   value={subStatus}
@@ -989,83 +940,59 @@ export default function AdminPanel() {
                 </select>
               </div>
 
-              {/* Table */}
               <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      {["Invoice No.", "Customer", "Package", "Amount Paid", "Amount EUR", "Status", "Date", "Actions"].map(h => (
-                        <th key={h} className={TABLE_TH}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      <tr>
-                        <td colSpan={8} className="text-center py-16 text-[12px] font-mono text-gray-300">Loading records...</td>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[700px]">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        {["Invoice No.", "Customer", "Package", "Amount Paid", "Amount EUR", "Status", "Date", "Actions"].map(h => (
+                          <th key={h} className={TABLE_TH}>{h}</th>
+                        ))}
                       </tr>
-                    ) : subscriptions.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="text-center py-16 text-[12px] font-mono text-gray-300">No records found.</td>
-                      </tr>
-                    ) : subscriptions.map(s => (
-                      <tr key={s.id} className="hover:bg-amber-50 transition-colors">
-                        <td className={`${TABLE_TD} font-mono text-xs font-bold text-zinc-900`}>{s.invoiceNo}</td>
-                        <td className={TABLE_TD}>
-                          <div className="font-semibold text-[13px] text-zinc-900">{s.user.name ?? "—"}</div>
-                          <div className="text-[11px] font-mono text-gray-400">{s.user.email}</div>
-                        </td>
-                        <td className={TABLE_TD}>
-                          <div className="font-semibold text-[13px] text-zinc-900">{s.packageSnapshot?.name ?? s.package?.name}</div>
-                          <div className="text-[11px] text-gray-400">{s.packageSnapshot?.tagline}</div>
-                        </td>
-                        <td className={`${TABLE_TD} font-mono text-[13px] font-bold text-zinc-900`}>
-                          {fmtAmt(s.amount, s.currency)}
-                          <br />
-                          <span className="text-[10px] text-gray-400 font-normal">{s.currency}</span>
-                        </td>
-                        <td className={`${TABLE_TD} font-mono text-[12px] text-gray-500`}>{fmtEur(s.amountEur)}</td>
-                        <td className={TABLE_TD}><StatusBadge status={s.status} /></td>
-                        <td className={`${TABLE_TD} font-mono text-[11px] text-gray-400`}>{fmtDate(s.createdAt)}</td>
-                        <td className={TABLE_TD}>
-                          <div className="flex gap-2">
+                    </thead>
+                    <tbody>
+                      {loading ? (
+                        <tr><td colSpan={8} className="text-center py-16 text-[12px] font-mono text-gray-300">Loading records...</td></tr>
+                      ) : subscriptions.length === 0 ? (
+                        <tr><td colSpan={8} className="text-center py-16 text-[12px] font-mono text-gray-300">No records found.</td></tr>
+                      ) : subscriptions.map(s => (
+                        <tr key={s.id} className="hover:bg-amber-50 transition-colors">
+                          <td className={`${TABLE_TD} font-mono text-xs font-bold text-zinc-900`}>{s.invoiceNo}</td>
+                          <td className={TABLE_TD}>
+                            <div className="font-semibold text-[13px] text-zinc-900">{s.user.name ?? "—"}</div>
+                            <div className="text-[11px] font-mono text-gray-400">{s.user.email}</div>
+                          </td>
+                          <td className={TABLE_TD}>
+                            <div className="font-semibold text-[13px] text-zinc-900">{s.packageSnapshot?.name ?? s.package?.name}</div>
+                            <div className="text-[11px] text-gray-400">{s.packageSnapshot?.tagline}</div>
+                          </td>
+                          <td className={`${TABLE_TD} font-mono text-[13px] font-bold text-zinc-900`}>
+                            {fmtAmt(s.amount, s.currency)}<br />
+                            <span className="text-[10px] text-gray-400 font-normal">{s.currency}</span>
+                          </td>
+                          <td className={`${TABLE_TD} font-mono text-[12px] text-gray-500`}>{fmtEur(s.amountEur)}</td>
+                          <td className={TABLE_TD}><StatusBadge status={s.status} /></td>
+                          <td className={`${TABLE_TD} font-mono text-[11px] text-gray-400`}>{fmtDate(s.createdAt)}</td>
+                          <td className={TABLE_TD}>
                             <button
                               onClick={() => setInvoiceModal({ open: true, sub: s })}
-                              className="rounded-lg px-3 py-1.5 text-[10px] font-mono font-semibold tracking-wider border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                              className="rounded-lg px-3 py-1.5 text-[10px] font-mono font-semibold tracking-wider border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap"
                             >
                               INVOICE
                             </button>
-                            {/* <button
-                            onClick={() => setStatusModal({ open: true, sub: s, newStatus: s.status })}
-                            className="rounded-lg px-3 py-1.5 text-[10px] font-mono font-semibold tracking-wider bg-zinc-900 text-amber-400 hover:bg-zinc-800 transition-colors"
-                          >
-                            STATUS
-                          </button> */}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
                     <span className="text-[11px] font-mono text-gray-400">Page {page} of {totalPages}</span>
                     <div className="flex gap-2">
-                      <button
-                        disabled={page === 1}
-                        onClick={() => setPage(p => p - 1)}
-                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-mono disabled:opacity-30 hover:bg-gray-50 transition-colors"
-                      >
-                        ← Prev
-                      </button>
-                      <button
-                        disabled={page === totalPages}
-                        onClick={() => setPage(p => p + 1)}
-                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-mono disabled:opacity-30 hover:bg-gray-50 transition-colors"
-                      >
-                        Next →
-                      </button>
+                      <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-mono disabled:opacity-30 hover:bg-gray-50 transition-colors">← Prev</button>
+                      <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-mono disabled:opacity-30 hover:bg-gray-50 transition-colors">Next →</button>
                     </div>
                   </div>
                 )}
@@ -1073,16 +1000,12 @@ export default function AdminPanel() {
             </div>
           )}
 
-          {/* ════ USERS ═════════════════════════════════════════════════════════ */}
+          {/* ════ USERS ═══════════════════════════════════════════════════════ */}
           {tab === "users" && (
             <div>
-              <div className="mb-6">
-                <h1 className="font-['Anton',sans-serif] text-[40px] tracking-[0.04em] text-zinc-900 leading-none">
-                  USERS
-                </h1>
-                <p className="text-[13px] font-mono text-gray-400 mt-1">
-                  Registered accounts and their assigned roles
-                </p>
+              <div className="mb-5 md:mb-6">
+                <h1 className="font-['Anton',sans-serif] text-[28px] md:text-[40px] tracking-[0.04em] text-zinc-900 leading-none">USERS</h1>
+                <p className="text-[13px] font-mono text-gray-400 mt-1">Registered accounts and their assigned roles</p>
               </div>
 
               <div className="flex gap-3 mb-5">
@@ -1095,73 +1018,57 @@ export default function AdminPanel() {
               </div>
 
               <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      {["User", "Email", "Role", "Orders", "Joined"].map(h => (
-                        <th key={h} className={TABLE_TH}>{h}</th>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[500px]">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        {["User", "Email", "Role", "Orders", "Joined"].map(h => (
+                          <th key={h} className={TABLE_TH}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {loading ? (
+                        <tr><td colSpan={5} className="text-center py-16 text-[12px] font-mono text-gray-300">Loading users...</td></tr>
+                      ) : users.length === 0 ? (
+                        <tr><td colSpan={5} className="text-center py-16 text-[13px] text-gray-300">No users found.</td></tr>
+                      ) : users.map(u => (
+                        <tr key={u.id} className="hover:bg-amber-50 transition-colors">
+                          <td className={TABLE_TD}>
+                            <div className="flex items-center gap-3">
+                              {u.image
+                                ? <img src={u.image} alt="" className="w-8 h-8 rounded-full object-cover border border-gray-200" />
+                                : (
+                                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-zinc-900 text-amber-400 font-['Anton',sans-serif]">
+                                    {(u.name ?? u.email)[0].toUpperCase()}
+                                  </div>
+                                )
+                              }
+                              <span className="font-semibold text-[13px] text-zinc-900">{u.name ?? "—"}</span>
+                            </div>
+                          </td>
+                          <td className={`${TABLE_TD} font-mono text-[12px] text-gray-500`}>{u.email}</td>
+                          <td className={TABLE_TD}>
+                            <span className={`px-2 py-1 rounded text-[10px] font-bold font-mono tracking-wide ${roleMeta(u.role)}`}>{u.role}</span>
+                          </td>
+                          <td className={TABLE_TD}>
+                            <span className={`font-['Anton',sans-serif] text-xl ${u._count.subscription > 0 ? "text-zinc-900" : "text-gray-200"}`}>
+                              {u._count.subscription}
+                            </span>
+                          </td>
+                          <td className={`${TABLE_TD} font-mono text-[11px] text-gray-400`}>{fmtDate(u.createdAt)}</td>
+                        </tr>
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      <tr>
-                        <td colSpan={5} className="text-center py-16 text-[12px] font-mono text-gray-300">Loading users...</td>
-                      </tr>
-                    ) : users.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="text-center py-16 text-[13px] text-gray-300">No users found.</td>
-                      </tr>
-                    ) : users.map(u => (
-                      <tr key={u.id} className="hover:bg-amber-50 transition-colors">
-                        <td className={TABLE_TD}>
-                          <div className="flex items-center gap-3">
-                            {u.image
-                              ? <img src={u.image} alt="" className="w-8 h-8 rounded-full object-cover border border-gray-200" />
-                              : (
-                                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-zinc-900 text-amber-400 font-['Anton',sans-serif]">
-                                  {(u.name ?? u.email)[0].toUpperCase()}
-                                </div>
-                              )
-                            }
-                            <span className="font-semibold text-[13px] text-zinc-900">{u.name ?? "—"}</span>
-                          </div>
-                        </td>
-                        <td className={`${TABLE_TD} font-mono text-[12px] text-gray-500`}>{u.email}</td>
-                        <td className={TABLE_TD}>
-                          <span className={`px-2 py-1 rounded text-[10px] font-bold font-mono tracking-wide ${roleMeta(u.role)}`}>
-                            {u.role}
-                          </span>
-                        </td>
-                        <td className={TABLE_TD}>
-                          <span className={`font-['Anton',sans-serif] text-xl ${u._count.subscription > 0 ? "text-zinc-900" : "text-gray-200"}`}>
-                            {u._count.subscription}
-                          </span>
-                        </td>
-                        <td className={`${TABLE_TD} font-mono text-[11px] text-gray-400`}>{fmtDate(u.createdAt)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                </div>
 
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
                     <span className="text-[11px] font-mono text-gray-400">Page {page} of {totalPages}</span>
                     <div className="flex gap-2">
-                      <button
-                        disabled={page === 1}
-                        onClick={() => setPage(p => p - 1)}
-                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-mono disabled:opacity-30 hover:bg-gray-50 transition-colors"
-                      >
-                        ← Prev
-                      </button>
-                      <button
-                        disabled={page === totalPages}
-                        onClick={() => setPage(p => p + 1)}
-                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-mono disabled:opacity-30 hover:bg-gray-50 transition-colors"
-                      >
-                        Next →
-                      </button>
+                      <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-mono disabled:opacity-30 hover:bg-gray-50 transition-colors">← Prev</button>
+                      <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-mono disabled:opacity-30 hover:bg-gray-50 transition-colors">Next →</button>
                     </div>
                   </div>
                 )}
@@ -1169,83 +1076,56 @@ export default function AdminPanel() {
             </div>
           )}
 
-          {/* ════ PACKAGES ══════════════════════════════════════════════════════ */}
+          {/* ════ PACKAGES ════════════════════════════════════════════════════ */}
           {tab === "packages" && (
             <div>
-              <div className="mb-6">
-                <h1 className="font-['Anton',sans-serif] text-[40px] tracking-[0.04em] text-zinc-900 leading-none">
-                  PACKAGES
-                </h1>
-                <p className="text-[13px] font-mono text-gray-400 mt-1">
-                  Live service packages pulled from the database
-                </p>
+              <div className="mb-5 md:mb-6">
+                <h1 className="font-['Anton',sans-serif] text-[28px] md:text-[40px] tracking-[0.04em] text-zinc-900 leading-none">PACKAGES</h1>
+                <p className="text-[13px] font-mono text-gray-400 mt-1">Live service packages pulled from the database</p>
               </div>
 
-              <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
+              <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
                 {loading ? (
                   <p className="text-[12px] font-mono text-gray-300 p-5">Loading packages...</p>
                 ) : packages.map(p => (
-                  <div
-                    key={p.id}
-                    className={`rounded-xl border overflow-hidden ${p.theme === "dark" ? "bg-zinc-900 border-zinc-800" : "bg-white border-gray-200"}`}
-                  >
-                    {/* Header */}
+                  <div key={p.id} className={`rounded-xl border overflow-hidden ${p.theme === "dark" ? "bg-zinc-900 border-zinc-800" : "bg-white border-gray-200"}`}>
                     <div className={`px-5 py-4 border-b ${p.theme === "dark" ? "border-zinc-800" : "border-gray-100"}`}>
                       <div className="flex items-start justify-between">
                         <div>
                           {p.isPopular && (
-                            <span className="inline-block mb-2 px-2 py-0.5 rounded text-[10px] font-bold font-mono tracking-wide bg-amber-400 text-zinc-900">
-                              ★ MOST POPULAR
-                            </span>
+                            <span className="inline-block mb-2 px-2 py-0.5 rounded text-[10px] font-bold font-mono tracking-wide bg-amber-400 text-zinc-900">★ MOST POPULAR</span>
                           )}
                           <h3 className={`font-['Anton',sans-serif] text-[22px] tracking-[0.04em] leading-tight ${p.theme === "dark" ? "text-amber-400" : "text-zinc-900"}`}>
                             {p.name.toUpperCase()}
                           </h3>
-                          <p className={`text-[12px] mt-0.5 ${p.theme === "dark" ? "text-zinc-500" : "text-gray-400"}`}>
-                            {p.tagline}
-                          </p>
+                          <p className={`text-[12px] mt-0.5 ${p.theme === "dark" ? "text-zinc-500" : "text-gray-400"}`}>{p.tagline}</p>
                         </div>
-                        <span className={`px-2 py-1 rounded text-[10px] font-mono font-semibold ${p.isActive ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
+                        <span className={`px-2 py-1 rounded text-[10px] font-mono font-semibold flex-shrink-0 ${p.isActive ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
                           {p.isActive ? "ACTIVE" : "INACTIVE"}
                         </span>
                       </div>
                     </div>
-
-                    {/* Body */}
                     <div className="px-5 py-4">
                       <div className="flex items-end gap-2 mb-4">
-                        <span className={`font-['Anton',sans-serif] text-[36px] leading-none ${p.theme === "dark" ? "text-white" : "text-zinc-900"}`}>
-                          €{p.priceEur}
-                        </span>
-                        <span className={`text-[11px] font-mono mb-1 ${p.theme === "dark" ? "text-zinc-600" : "text-gray-400"}`}>
-                          one-time · {p.deliveryDays} days
-                        </span>
+                        <span className={`font-['Anton',sans-serif] text-[36px] leading-none ${p.theme === "dark" ? "text-white" : "text-zinc-900"}`}>€{p.priceEur}</span>
+                        <span className={`text-[11px] font-mono mb-1 ${p.theme === "dark" ? "text-zinc-600" : "text-gray-400"}`}>one-time · {p.deliveryDays} days</span>
                       </div>
-
                       <ul className="space-y-1.5 mb-4">
                         {p.features.map((f, i) => (
                           <li key={i} className={`flex items-start gap-2 text-[12px] ${p.theme === "dark" ? "text-zinc-400" : "text-gray-500"}`}>
-                            <span className="text-amber-400 flex-shrink-0 mt-0.5">✦</span>
-                            {f}
+                            <span className="text-amber-400 flex-shrink-0 mt-0.5">✦</span>{f}
                           </li>
                         ))}
                       </ul>
-
                       <div className={`pt-3 border-t flex items-center justify-between ${p.theme === "dark" ? "border-zinc-800" : "border-gray-100"}`}>
-                        <span className={`text-[10px] font-mono tracking-widest uppercase ${p.theme === "dark" ? "text-zinc-600" : "text-gray-400"}`}>
-                          Total Orders
-                        </span>
-                        <span className={`font-['Anton',sans-serif] text-[22px] leading-none ${p.theme === "dark" ? "text-amber-400" : "text-zinc-900"}`}>
-                          {p._count.subscription}
-                        </span>
+                        <span className={`text-[10px] font-mono tracking-widest uppercase ${p.theme === "dark" ? "text-zinc-600" : "text-gray-400"}`}>Total Orders</span>
+                        <span className={`font-['Anton',sans-serif] text-[22px] leading-none ${p.theme === "dark" ? "text-amber-400" : "text-zinc-900"}`}>{p._count.subscription}</span>
                       </div>
                     </div>
                   </div>
                 ))}
                 {!loading && packages.length === 0 && (
-                  <p className="text-[12px] font-mono text-gray-300 p-5">
-                    No packages found. Create a subscription to trigger a package upsert.
-                  </p>
+                  <p className="text-[12px] font-mono text-gray-300 p-5">No packages found. Create a subscription to trigger a package upsert.</p>
                 )}
               </div>
             </div>
@@ -1253,55 +1133,42 @@ export default function AdminPanel() {
 
           {tab === "ai-connect" && (
             <AIConnectTab
-              aiConfig={aiConfig}
-              aiConfigLoading={aiConfigLoading}
-              aiForm={aiForm}
-              setAiForm={setAiForm}
-              aiConnecting={aiConnecting}
-              aiDisconnecting={aiDisconnecting}
-              connectAI={connectAI}
-              disconnectAI={disconnectAI}
+              aiConfig={aiConfig} aiConfigLoading={aiConfigLoading}
+              aiForm={aiForm} setAiForm={setAiForm}
+              aiConnecting={aiConnecting} aiDisconnecting={aiDisconnecting}
+              connectAI={connectAI} disconnectAI={disconnectAI}
             />
           )}
-          {tab === "ai-usage" && (
-            <AIUsageTab
-              aiUsage={aiUsage}
-              aiUsageLoading={aiUsageLoading}
-            />
-          )}
-          {tab === "analytics" && (
-            <AnalyticsTab analytics={analytics} loading={analyticsLoading} />
-          )}
+          {tab === "ai-usage"   && <AIUsageTab   aiUsage={aiUsage}     aiUsageLoading={aiUsageLoading} />}
+          {tab === "analytics"  && <AnalyticsTab analytics={analytics} loading={analyticsLoading} />}
+
         </main>
 
-        {/* ════ INVOICE MODAL ═════════════════════════════════════════════════════ */}
+        {/* ════ INVOICE MODAL ═══════════════════════════════════════════════════ */}
         {invoiceModal.open && invoiceModal.sub && (() => {
-          const s = invoiceModal.sub
+          const s    = invoiceModal.sub
           const snap = s.packageSnapshot
           return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center overflow-auto py-8 px-4 bg-black/70 backdrop-blur-sm">
-              <div className="w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl border-2 border-zinc-900 bg-stone-50">
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center overflow-auto sm:py-8 px-0 sm:px-4 bg-black/70 backdrop-blur-sm">
+              <div className="w-full sm:max-w-xl rounded-t-2xl sm:rounded-2xl overflow-hidden shadow-2xl border-0 sm:border-2 border-zinc-900 bg-stone-50 max-h-[90vh] overflow-y-auto">
 
                 {/* Invoice Header */}
-                <div className="px-8 py-6 bg-zinc-900">
+                <div className="px-5 md:px-8 py-5 md:py-6 bg-zinc-900">
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-[11px] font-mono text-amber-400 tracking-[0.2em] uppercase mb-1.5">Invoice</p>
-                      <p className="font-['Anton',sans-serif] text-[28px] text-white tracking-[0.04em]">{s.invoiceNo}</p>
+                      <p className="font-['Anton',sans-serif] text-[22px] md:text-[28px] text-white tracking-[0.04em]">{s.invoiceNo}</p>
                       <p className="font-mono text-[11px] text-zinc-500 mt-1">{fmtDate(s.createdAt)}</p>
                     </div>
                     <div className="text-right">
                       <StatusBadge status={s.status} />
-                      <p className="font-['Anton',sans-serif] text-[32px] text-amber-400 mt-2 leading-none">
-                        {fmtAmt(s.amount, s.currency)}
-                      </p>
+                      <p className="font-['Anton',sans-serif] text-[24px] md:text-[32px] text-amber-400 mt-2 leading-none">{fmtAmt(s.amount, s.currency)}</p>
                       <p className="font-mono text-[10px] text-zinc-500 mt-1">≈ {fmtEur(s.amountEur)} EUR</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="px-8 py-6 space-y-4">
-
+                <div className="px-5 md:px-8 py-5 md:py-6 space-y-4">
                   {/* Customer */}
                   <div className="rounded-xl p-4 border border-gray-200 bg-white">
                     <p className="text-[10px] font-mono text-gray-400 tracking-[0.12em] uppercase mb-3">Customer</p>
@@ -1324,18 +1191,14 @@ export default function AdminPanel() {
 
                   {/* Package Snapshot */}
                   <div className="rounded-xl p-4 border border-gray-200 bg-white">
-                    <p className="text-[10px] font-mono text-gray-400 tracking-[0.12em] uppercase mb-3">
-                      Package — at time of purchase
-                    </p>
+                    <p className="text-[10px] font-mono text-gray-400 tracking-[0.12em] uppercase mb-3">Package — at time of purchase</p>
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <p className="font-['Anton',sans-serif] text-[20px] text-zinc-900 tracking-[0.04em]">
-                          {snap?.name?.toUpperCase()}
-                        </p>
+                        <p className="font-['Anton',sans-serif] text-[18px] md:text-[20px] text-zinc-900 tracking-[0.04em]">{snap?.name?.toUpperCase()}</p>
                         <p className="text-[12px] text-gray-400 mt-0.5">{snap?.tagline}</p>
                       </div>
-                      <div className="text-right font-mono text-[11px] text-gray-500">
-                        <p className="font-['Anton',sans-serif] text-[22px] text-zinc-900">€{snap?.priceEur}</p>
+                      <div className="text-right font-mono text-[11px] text-gray-500 flex-shrink-0 ml-3">
+                        <p className="font-['Anton',sans-serif] text-[20px] md:text-[22px] text-zinc-900">€{snap?.priceEur}</p>
                         <p>{snap?.deliveryDays} days delivery</p>
                       </div>
                     </div>
@@ -1355,9 +1218,9 @@ export default function AdminPanel() {
                     <p className="text-[10px] font-mono text-gray-400 tracking-[0.12em] uppercase mb-3">Payment Details</p>
                     <div className="grid grid-cols-2 gap-3">
                       {[
-                        { label: "Currency", value: s.currency },
+                        { label: "Currency",    value: s.currency },
                         { label: "Amount Paid", value: fmtAmt(s.amount, s.currency) },
-                        { label: "Amount EUR", value: fmtEur(s.amountEur) },
+                        { label: "Amount EUR",  value: fmtEur(s.amountEur) },
                         { label: "Invoice No.", value: s.invoiceNo },
                       ].map(row => (
                         <div key={row.label}>
@@ -1378,16 +1241,14 @@ export default function AdminPanel() {
                 </div>
 
                 {/* Footer */}
-                <div className="px-8 py-4 border-t border-gray-200 flex justify-between items-center">
+                <div className="px-5 md:px-8 py-4 border-t border-gray-200 flex justify-between items-center">
                   <button
                     onClick={() => {
                       setInvoiceModal({ open: false, sub: null })
                       setStatusModal({ open: true, sub: s, newStatus: s.status })
                     }}
                     className="text-[11px] font-mono text-zinc-900 tracking-wide underline underline-offset-2 hover:text-amber-600 transition-colors"
-                  >
-
-                  </button>
+                  />
                   <button
                     onClick={() => setInvoiceModal({ open: false, sub: null })}
                     className="bg-zinc-900 text-amber-400 text-[11px] font-mono font-bold px-5 py-2 rounded-lg tracking-wider hover:bg-zinc-800 transition-colors"
@@ -1400,32 +1261,26 @@ export default function AdminPanel() {
           )
         })()}
 
-        {/* ════ STATUS MODAL ══════════════════════════════════════════════════════ */}
+        {/* ════ STATUS MODAL ════════════════════════════════════════════════════ */}
         {statusModal.open && statusModal.sub && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm">
-            <div className="w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden border-2 border-zinc-900 bg-stone-50">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-0 sm:px-4 bg-black/70 backdrop-blur-sm">
+            <div className="w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden border-0 sm:border-2 border-zinc-900 bg-stone-50">
               <div className="px-6 py-5 bg-zinc-900">
                 <p className="text-[11px] font-mono text-amber-400 tracking-[0.2em] uppercase mb-1">Update Status</p>
                 <p className="font-mono text-[13px] text-white">{statusModal.sub.invoiceNo}</p>
-                <p className="font-mono text-[11px] text-zinc-500 mt-1">
-                  {statusModal.sub.user.name ?? statusModal.sub.user.email}
-                </p>
+                <p className="font-mono text-[11px] text-zinc-500 mt-1">{statusModal.sub.user.name ?? statusModal.sub.user.email}</p>
               </div>
-
               <div className="px-6 py-6">
                 <p className="text-[10px] font-mono text-gray-400 tracking-[0.12em] uppercase mb-3">Select New Status</p>
                 <div className="grid grid-cols-2 gap-2">
                   {["PENDING", "PROCESSING", "COMPLETED", "CANCELLED"].map(st => {
-                    const m = statusMeta(st)
+                    const m        = statusMeta(st)
                     const selected = statusModal.newStatus === st
                     return (
                       <button
                         key={st}
                         onClick={() => setStatusModal(prev => ({ ...prev, newStatus: st }))}
-                        className={`rounded-xl py-3 text-center text-[11px] font-mono font-bold tracking-wide border-2 transition-all ${selected
-                            ? `${m.badge} border-current`
-                            : "bg-white text-gray-400 border-gray-200 hover:border-gray-300"
-                          }`}
+                        className={`rounded-xl py-3 text-center text-[11px] font-mono font-bold tracking-wide border-2 transition-all ${selected ? `${m.badge} border-current` : "bg-white text-gray-400 border-gray-200 hover:border-gray-300"}`}
                       >
                         {st}
                       </button>
@@ -1433,7 +1288,6 @@ export default function AdminPanel() {
                   })}
                 </div>
               </div>
-
               <div className="px-6 pb-6 flex gap-3">
                 <button
                   onClick={() => setStatusModal({ open: false, sub: null, newStatus: "" })}

@@ -138,7 +138,7 @@ function WhatWeCreateSection() {
     <section className="max-w-7xl mx-auto px-6 py-24">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         {/* Left text */}
-        <div>
+        <div className="">
           <div className="inline-block border-2 border-black bg-[#FFD000] px-4 py-1 text-[10px] font-black uppercase tracking-widest mb-6">
             ★ What We Create
           </div>
