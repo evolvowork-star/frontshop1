@@ -83,26 +83,7 @@ function MastercardIcon({ active }: { active?: boolean }) {
     </div>
   )
 }
-function AmexIcon({ active }: { active?: boolean }) {
-  return (
-    <div className={`flex items-center justify-center px-2.5 py-1.5 border-2 transition-all ${active ? "border-[#007BC1] bg-[#007BC1]" : "border-gray-200 bg-white"}`} style={{ minWidth: 48, height: 32 }}>
-      <svg viewBox="0 0 60 20" width="40" height="14" fill="none">
-        <text x="0" y="15" fontFamily="Arial Black, sans-serif" fontWeight="900" fontSize="13" fill={active ? "white" : "#007BC1"} letterSpacing="1">AMEX</text>
-      </svg>
-    </div>
-  )
-}
-function DiscoverIcon({ active }: { active?: boolean }) {
-  return (
-    <div className={`flex items-center justify-center px-2 py-1.5 border-2 transition-all ${active ? "border-orange-500 bg-orange-500" : "border-gray-200 bg-white"}`} style={{ minWidth: 48, height: 32 }}>
-      <svg viewBox="0 0 70 20" width="52" height="16" fill="none">
-        <text x="0" y="15" fontFamily="Arial Black, sans-serif" fontWeight="900" fontSize="12" fill={active ? "white" : "#E65C1E"} letterSpacing="0.5">DISC</text>
-        <circle cx="58" cy="10" r="8" fill={active ? "rgba(255,255,255,0.3)" : "#E65C1E"} />
-        <circle cx="58" cy="10" r="5" fill={active ? "white" : "#FF6B2E"} />
-      </svg>
-    </div>
-  )
-}
+
 
 // ── Visual credit card preview ─────────────────────────────────────────────────
 function CardPreview({ number, name, expiry, brand }: { number: string; name: string; expiry: string; brand: string }) {
@@ -768,8 +749,7 @@ function CheckoutContent() {
                       <div className="flex items-center gap-1.5">
                         <VisaIcon active={brand === "visa"} />
                         <MastercardIcon active={brand === "mastercard"} />
-                        <AmexIcon active={brand === "amex"} />
-                        <DiscoverIcon active={brand === "discover"} />
+                        
                       </div>
                     </div>
                   </div>
@@ -795,8 +775,7 @@ function CheckoutContent() {
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-60">
                           {brand === "visa" && <VisaIcon active />}
                           {brand === "mastercard" && <MastercardIcon active />}
-                          {brand === "amex" && <AmexIcon active />}
-                          {brand === "discover" && <DiscoverIcon active />}
+                          
                           {brand === "unknown" && (
                             <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                               <rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" />
