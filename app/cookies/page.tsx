@@ -298,7 +298,7 @@ export default function CookiePolicyPage() {
               Terms
             </Link>
             <Link href="/refund-policy" className="text-[10px] text-gray-700 hover:text-gray-400 uppercase tracking-widest transition-colors">
-              Refunds
+              Refunds Policy
             </Link>
           </div>
         </div>
