@@ -51,8 +51,8 @@ export default function Footer() {
               Need something custom? We&apos;ve got you.
             </p>
           </div>
-          <a
-            href="mailto:support@brieflabstudio.com"
+          
+           <a href="mailto:support@brieflabstudio.com"
             className="bg-black text-[#FFD000] px-6 py-2 text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-colors border-2 border-black"
           >
             Get In Touch →
@@ -89,6 +89,22 @@ export default function Footer() {
                   <MastercardLogo />
                 </div>
               </div>
+            </div>
+
+            {/* ✅ Company Registration Info — ADDED HERE */}
+            <div className="mt-8 border border-gray-800 p-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">
+                Registered Company
+              </p>
+              <p className="text-xs text-gray-400 font-bold leading-relaxed">
+                Evoea Fakturaservice AB
+              </p>
+              <p className="text-xs text-gray-600 leading-relaxed mt-1">
+                Karlavägen 18, BV, 114 31 Stockholm
+              </p>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Reg. No: 559117-4783
+              </p>
             </div>
           </div>
 
@@ -138,9 +154,9 @@ export default function Footer() {
             <ul className="space-y-3">
               {footerLinks.support.map((link) => (
                 <li key={link.label}>
-                  <a
-                    href={link.href}
-                    className="text-sm text-gray-400 hover:text-white transition-colors font-medium"
+                  
+                   <a  href={link.href}
+                   className="text-sm text-gray-400 hover:text-white transition-colors font-medium"
                   >
                     {link.label}
                   </a>
@@ -149,8 +165,8 @@ export default function Footer() {
             </ul>
             <div className="mt-6 border border-gray-800 p-4">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Email Support</p>
-              <a
-                href="mailto:support@brieflabstudio.com"
+              
+              <a  href="mailto:support@brieflabstudio.com"
                 className="text-xs text-[#FFD000] font-bold hover:underline"
               >
                 support@brieflabstudio.com
@@ -179,6 +195,14 @@ export default function Footer() {
             Powered by AI · Delivered by Humans
           </p>
         </div>
+
+        {/* ✅ Company Legal Line — ADDED IN BOTTOM BAR */}
+        <div className="mt-4 pt-4 border-t border-gray-900 text-center">
+          <p className="text-[10px] text-gray-700 uppercase tracking-widest">
+            Evoea Fakturaservice AB · Karlavägen 18, BV, 114 31 Stockholm · Reg. No: 559117-4783
+          </p>
+        </div>
+
       </div>
     </footer>
   )
